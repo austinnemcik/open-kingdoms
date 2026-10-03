@@ -1,0 +1,18 @@
+{
+  "size": 40,
+  "resources": { "food": 12000, "wood": 9500, "stone": 4000, "gold": 800 },
+  "buildings": [
+    { "id": 1, "kind": "city_hall", "name": "City Hall", "level": 5, "x": 18, "y": 18, "footprint": 4 },
+    { "id": 2, "kind": "farm", "name": "Farm", "level": 3, "x": 12, "y": 23, "footprint": 2 },
+    { "id": 3, "kind": "lumber_mill", "name": "Lumber Mill", "level": 3, "x": 24, "y": 13, "footprint": 2 },
+    { "id": 4, "kind": "quarry", "name": "Quarry", "level": 1, "x": 27, "y": 13, "footprint": 2 },
+    { "id": 5, "kind": "goldmine", "name": "Goldmine", "level": 1, "x": 27, "y": 17, "footprint": 2 },
+    { "id": 6, "kind": "storehouse", "name": "Storehouse", "level": 2, "x": 15, "y": 23, "footprint": 2 },
+    { "id": 7, "kind": "barracks", "name": "Barracks", "level": 4, "x": 12, "y": 13, "footprint": 3 },
+    { "id": 8, "kind": "archery_range", "name": "Archery Range", "level": 2, "x": 12, "y": 17, "footprint": 3 },
+    { "id": 9, "kind": "stable", "name": "Stable", "level": 2, "x": 23, "y": 23, "footprint": 3 },
+    { "id": 10, "kind": "siege_workshop", "name": "Siege Workshop", "level": 1, "x": 18, "y": 25, "footprint": 3 },
+    { "id": 11, "kind": "hospital", "name": "Hospital", "level": 2, "x": 24, "y": 19, "footprint": 2 },
+    { "id": 12, "kind": "academy", "name": "Academy", "level": 2, "x": 18, "y": 13, "footprint": 3 }
+  ]
+}

@@ -1,0 +1,58 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/login_screen.gd" id="1"]
+
+[node name="Login" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.12, 0.15, 0.2, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/Panel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Open Kingdoms"
+horizontal_alignment = 1
+
+[node name="NameEdit" type="LineEdit" parent="Center/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Governor name"
+max_length = 16
+
+[node name="ServerEdit" type="LineEdit" parent="Center/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Server URL"
+
+[node name="PlayButton" type="Button" parent="Center/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Play"
+
+[node name="Status" type="Label" parent="Center/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3

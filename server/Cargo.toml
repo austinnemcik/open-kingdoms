@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/protocol", "crates/data", "crates/core", "crates/kingdom-server"]
+
+[workspace.package]
+edition = "2024"
+license = "AGPL-3.0-only"
+version = "0.1.0"
+
+[workspace.dependencies]
+anyhow = "1"
+axum = { version = "0.8", features = ["ws"] }
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.26"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+protocol = { path = "crates/protocol" }
+data = { path = "crates/data" }
+game-core = { path = "crates/core" }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

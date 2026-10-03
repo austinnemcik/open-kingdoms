@@ -1,0 +1,29 @@
+; Engine configuration file.
+; Edited by hand and by the Godot editor.
+
+config_version=5
+
+[application]
+
+config/name="Open Kingdoms"
+config/description="Open-source, no-microtransaction kingdom strategy game."
+run/main_scene="res://scenes/login.tscn"
+config/features=PackedStringArray("4.8", "Forward Plus")
+
+[autoload]
+
+Net="*res://scripts/net/net.gd"
+GameState="*res://scripts/game_state.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.web="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2

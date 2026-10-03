@@ -1,0 +1,16 @@
+# Rust
+/server/target/
+
+# Godot
+/client/.godot/
+/client/export/
+*.translation
+
+# Blender
+*.blend1
+
+# Local
+.env
+*.log
+.DS_Store
+Thumbs.db

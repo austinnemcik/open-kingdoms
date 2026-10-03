@@ -1,0 +1,13 @@
+[package]
+name = "protocol"
+description = "Wire messages exchanged between the Godot client and the kingdom server."
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

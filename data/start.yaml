@@ -1,0 +1,8 @@
+# The city every new player starts with.
+city_size: 40
+resources: { food: 1000, wood: 1000, stone: 0, gold: 0 }
+buildings:
+  - { kind: city_hall, level: 1, x: 18, y: 18 }
+  - { kind: farm, level: 1, x: 12, y: 22 }
+  - { kind: lumber_mill, level: 1, x: 24, y: 12 }
+  - { kind: barracks, level: 1, x: 12, y: 13 }

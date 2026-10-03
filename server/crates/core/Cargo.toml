@@ -1,0 +1,14 @@
+[package]
+name = "game-core"
+description = "Pure game rules: cities, economy, timers. No I/O."
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+data.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,136 @@
+# Building definitions. Per-level costs and times are generated from a base
+# value and a growth factor: value(level) = base * growth^(level - 1).
+# Costs are what it takes to reach that level; level 1 is the build cost.
+# `requires_city_hall`: minimum City Hall level before this can be built.
+buildings:
+  - id: city_hall
+    name: City Hall
+    footprint: 4
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 0
+    cost: { base: { food: 0, wood: 0, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 300, wood: 300, stone: 0, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 0, growth: 1.0 }
+    upgrade_time: { base_s: 30, growth: 1.6 }
+
+  - id: farm
+    name: Farm
+    footprint: 2
+    max_level: 25
+    max_count: 4
+    requires_city_hall: 1
+    cost: { base: { food: 0, wood: 50, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 0, wood: 80, stone: 0, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 5, growth: 1.0 }
+    upgrade_time: { base_s: 8, growth: 1.55 }
+
+  - id: lumber_mill
+    name: Lumber Mill
+    footprint: 2
+    max_level: 25
+    max_count: 4
+    requires_city_hall: 1
+    cost: { base: { food: 50, wood: 0, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 80, wood: 0, stone: 0, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 5, growth: 1.0 }
+    upgrade_time: { base_s: 8, growth: 1.55 }
+
+  - id: quarry
+    name: Quarry
+    footprint: 2
+    max_level: 25
+    max_count: 4
+    requires_city_hall: 4
+    cost: { base: { food: 100, wood: 100, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 120, wood: 120, stone: 0, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 15, growth: 1.0 }
+    upgrade_time: { base_s: 20, growth: 1.55 }
+
+  - id: goldmine
+    name: Goldmine
+    footprint: 2
+    max_level: 25
+    max_count: 4
+    requires_city_hall: 10
+    cost: { base: { food: 500, wood: 500, stone: 300, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 600, wood: 600, stone: 400, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 60, growth: 1.0 }
+    upgrade_time: { base_s: 90, growth: 1.55 }
+
+  - id: storehouse
+    name: Storehouse
+    footprint: 2
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 2
+    cost: { base: { food: 100, wood: 100, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 150, wood: 150, stone: 0, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 10, growth: 1.0 }
+    upgrade_time: { base_s: 15, growth: 1.55 }
+
+  - id: barracks
+    name: Barracks
+    footprint: 3
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 1
+    cost: { base: { food: 100, wood: 100, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 150, wood: 150, stone: 0, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 10, growth: 1.0 }
+    upgrade_time: { base_s: 15, growth: 1.6 }
+
+  - id: archery_range
+    name: Archery Range
+    footprint: 3
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 3
+    cost: { base: { food: 150, wood: 150, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 150, wood: 150, stone: 0, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 15, growth: 1.0 }
+    upgrade_time: { base_s: 15, growth: 1.6 }
+
+  - id: stable
+    name: Stable
+    footprint: 3
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 5
+    cost: { base: { food: 200, wood: 200, stone: 50, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 200, wood: 200, stone: 50, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 20, growth: 1.0 }
+    upgrade_time: { base_s: 20, growth: 1.6 }
+
+  - id: siege_workshop
+    name: Siege Workshop
+    footprint: 3
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 7
+    cost: { base: { food: 300, wood: 300, stone: 100, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 300, wood: 300, stone: 100, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 30, growth: 1.0 }
+    upgrade_time: { base_s: 30, growth: 1.6 }
+
+  - id: hospital
+    name: Hospital
+    footprint: 2
+    max_level: 25
+    max_count: 4
+    requires_city_hall: 2
+    cost: { base: { food: 100, wood: 100, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 120, wood: 120, stone: 0, gold: 0 }, growth: 1.5 }
+    build_time: { base_s: 10, growth: 1.0 }
+    upgrade_time: { base_s: 12, growth: 1.55 }
+
+  - id: academy
+    name: Academy
+    footprint: 3
+    max_level: 25
+    max_count: 1
+    requires_city_hall: 3
+    cost: { base: { food: 200, wood: 200, stone: 0, gold: 0 }, growth: 1.0 }
+    upgrade_cost: { base: { food: 200, wood: 200, stone: 0, gold: 0 }, growth: 1.55 }
+    build_time: { base_s: 20, growth: 1.0 }
+    upgrade_time: { base_s: 20, growth: 1.6 }
