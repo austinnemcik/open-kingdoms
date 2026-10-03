@@ -49,3 +49,11 @@ ID, what changed, and anything the next run should know.
   runs off-runtime and stops with the server. It is the hook for timer completion.
 - Unit tests check clock semantics and city timestamps; a WebSocket integration
   test verifies a manual clock drives successive real server ticks.
+
+## 2026-10-03 - P1-04 Resource production
+
+- Added validated per-level production/storage curves and minute-scale early pacing.
+- Pure lazy collection retains fractional numerators, caps production, handles
+  backwards/extreme clocks, and initializes legacy cities without epoch windfalls.
+- City snapshots expose per-hour rates, capacity and Unix-second as_of; collected
+  state persists before replying. Added deterministic economy and WebSocket tests.

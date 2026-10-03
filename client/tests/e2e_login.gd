@@ -29,6 +29,9 @@ func _process(delta: float) -> bool:
 
 
 func _on_city(city: Dictionary) -> void:
+	if not city.has("as_of") or not city.has("rates_per_hour") or not city.has("capacity"):
+		_fail("missing resource accounting snapshot fields")
+		return
 	var view: Node = load("res://scenes/city.tscn").instantiate()
 	root.add_child(view)
 	view.render_city(city)

@@ -33,6 +33,26 @@ pub struct Resources {
 }
 
 impl Resources {
+    /// Stable wire/economy order: food, wood, stone, gold.
+    pub fn values(self) -> [u64; 4] {
+        [self.food, self.wood, self.stone, self.gold]
+    }
+    /// Build a resource bundle in the stable economy order.
+    pub fn from_values(v: [u64; 4]) -> Self {
+        Self {
+            food: v[0],
+            wood: v[1],
+            stone: v[2],
+            gold: v[3],
+        }
+    }
+    /// Saturating resource-wise addition for aggregation.
+    pub fn saturating_add(self, other: Self) -> Self {
+        let a = self.values();
+        let b = other.values();
+        Self::from_values(std::array::from_fn(|i| a[i].saturating_add(b[i])))
+    }
+
     fn scaled(self, factor: f64) -> Self {
         let s = |v: u64| (v as f64 * factor).round() as u64;
         Self {
@@ -58,6 +78,12 @@ pub struct TimeCurve {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BuildingDef {
+    /// Units produced per hour at level one, with per-level growth.
+    #[serde(default)]
+    pub production: Option<CostCurve>,
+    /// Storage contributed by this building, with per-level growth.
+    #[serde(default)]
+    pub capacity: Option<CostCurve>,
     pub id: String,
     pub name: String,
     pub footprint: u32,
@@ -73,6 +99,23 @@ pub struct BuildingDef {
 }
 
 impl BuildingDef {
+    /// Production per hour; unfinished level-zero buildings contribute nothing.
+    pub fn production_for_level(&self, level: u32) -> Resources {
+        Self::curve_at(self.production, level)
+    }
+    /// Storage capacity; unfinished level-zero buildings contribute nothing.
+    pub fn capacity_for_level(&self, level: u32) -> Resources {
+        Self::curve_at(self.capacity, level)
+    }
+    fn curve_at(curve: Option<CostCurve>, level: u32) -> Resources {
+        if level == 0 {
+            return Resources::default();
+        }
+        curve.map_or(Resources::default(), |c| {
+            c.base.scaled(c.growth.powf(f64::from(level - 1)))
+        })
+    }
+
     /// Resources needed to reach `level` (1 = construction).
     pub fn cost_for_level(&self, level: u32) -> Resources {
         if level <= 1 {
@@ -127,6 +170,10 @@ impl GameData {
         let dir = dir.as_ref();
         let buildings: BuildingsFile = read_yaml(&dir.join("buildings.yaml"))?;
         let start: StartConfig = read_yaml(&dir.join("start.yaml"))?;
+        let mut ids = std::collections::HashSet::new();
+        if buildings.buildings.iter().any(|b| !ids.insert(&b.id)) {
+            return Err(DataError::Invalid("duplicate building id".into()));
+        }
         let data = Self {
             buildings: buildings
                 .buildings
@@ -164,6 +211,23 @@ impl GameData {
                     b.id
                 ));
             }
+            if b.max_level > 100 {
+                return invalid(format!("{}: max_level exceeds supported limit 100", b.id));
+            }
+            for curve in [b.production, b.capacity].into_iter().flatten() {
+                if !curve.growth.is_finite()
+                    || curve.growth < 1.0
+                    || curve.base.values().iter().all(|v| *v == 0)
+                {
+                    return invalid(format!("{}: invalid production/capacity curve", b.id));
+                }
+                for base in curve.base.values() {
+                    let max = base as f64 * curve.growth.powf(f64::from(b.max_level - 1));
+                    if !max.is_finite() || max >= u64::MAX as f64 {
+                        return invalid(format!("{}: economy curve overflows", b.id));
+                    }
+                }
+            }
             for g in [
                 b.cost.growth,
                 b.upgrade_cost.growth,
@@ -176,6 +240,9 @@ impl GameData {
             }
         }
         let size = self.start.city_size;
+        if size == 0 || size > 1024 {
+            return invalid("city_size must be 1..=1024".into());
+        }
         let mut occupied = vec![false; (size * size) as usize];
         for sb in &self.start.buildings {
             let Some(def) = self.building(&sb.kind) else {
@@ -184,7 +251,9 @@ impl GameData {
             if sb.level == 0 || sb.level > def.max_level {
                 return invalid(format!("start.yaml: {} level out of range", sb.kind));
             }
-            if sb.x + def.footprint > size || sb.y + def.footprint > size {
+            if sb.x.checked_add(def.footprint).is_none_or(|v| v > size)
+                || sb.y.checked_add(def.footprint).is_none_or(|v| v > size)
+            {
                 return invalid(format!("start.yaml: {} lies outside the city", sb.kind));
             }
             for dy in 0..def.footprint {
@@ -238,5 +307,37 @@ mod tests {
         assert_eq!(farm.cost_for_level(2).wood, 80);
         assert!(farm.cost_for_level(10).wood > farm.cost_for_level(9).wood);
         assert!(farm.time_for_level(10) > farm.time_for_level(2));
+    }
+    #[test]
+    fn economy_curves_and_invalid_data() {
+        let d = data();
+        let farm = d.building("farm").unwrap();
+        assert_eq!(farm.production_for_level(0), Resources::default());
+        assert_eq!(farm.production_for_level(1).food, 600);
+        assert_eq!(farm.production_for_level(2).food, 900);
+        assert!(farm.capacity_for_level(2).food > farm.capacity_for_level(1).food);
+        for growth in [f64::NAN, f64::INFINITY, 0.5, f64::MAX] {
+            let mut bad = data();
+            bad.buildings
+                .get_mut("farm")
+                .unwrap()
+                .production
+                .as_mut()
+                .unwrap()
+                .growth = growth;
+            assert!(bad.validate().is_err());
+        }
+        let mut bad = data();
+        bad.buildings
+            .get_mut("farm")
+            .unwrap()
+            .capacity
+            .as_mut()
+            .unwrap()
+            .base = Resources::default();
+        assert!(bad.validate().is_err());
+        bad = data();
+        bad.start.buildings[0].x = u32::MAX;
+        assert!(bad.validate().is_err());
     }
 }

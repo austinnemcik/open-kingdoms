@@ -213,13 +213,13 @@ async fn password_session_and_city_survive_process_restart() {
     assert!(
         matches!(c.request(r#"{"type":"login","name":"persisted","password":"password123"}"#).await, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id)
     );
-    assert_eq!(c.request(r#"{"type":"get_city"}"#).await, city);
+    assert_same_persisted_city(&city, &c.request(r#"{"type":"get_city"}"#).await);
     let mut resumed = Client::connect(addr).await;
     resumed.hello().await;
     assert!(
         matches!(resumed.request(&serde_json::json!({"type":"resume","token":token}).to_string()).await, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id)
     );
-    assert_eq!(resumed.request(r#"{"type":"get_city"}"#).await, city);
+    assert_same_persisted_city(&city, &resumed.request(r#"{"type":"get_city"}"#).await);
 }
 
 #[tokio::test]
@@ -254,4 +254,17 @@ async fn injected_clock_drives_the_one_second_tick() {
     }
     task.abort();
     let _ = task.await;
+}
+
+fn assert_same_persisted_city(before: &ServerMsg, after: &ServerMsg) {
+    let (ServerMsg::CityState { city: before }, ServerMsg::CityState { city: after }) =
+        (before, after)
+    else {
+        panic!("expected city snapshots")
+    };
+    assert_eq!(before.buildings, after.buildings);
+    assert_eq!(before.size, after.size);
+    assert_eq!(before.rates_per_hour, after.rates_per_hour);
+    assert!(after.as_of >= before.as_of);
+    assert!(after.resources.food >= before.resources.food);
 }

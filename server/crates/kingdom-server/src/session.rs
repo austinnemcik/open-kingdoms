@@ -108,11 +108,8 @@ fn handle(kingdom: &Kingdom, phase: &mut Phase, msg: ClientMsg) -> Vec<ServerMsg
             )]
         }
         (Phase::Playing(player), ClientMsg::GetCity) => match kingdom.city_view(*player) {
-            Some(city) => vec![ServerMsg::CityState { city }],
-            None => vec![ServerMsg::error(
-                ErrorCode::NotLoggedIn,
-                "no city for player",
-            )],
+            Ok(city) => vec![ServerMsg::CityState { city }],
+            Err(code) => vec![ServerMsg::error(code, "city unavailable")],
         },
     }
 }

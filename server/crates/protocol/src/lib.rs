@@ -77,6 +77,11 @@ pub struct CityView {
     /// Width/height of the square city grid, in tiles.
     pub size: u32,
     pub resources: ResourcesView,
+    /// Production rates in whole resource units per hour.
+    pub rates_per_hour: ResourcesView,
+    pub capacity: ResourcesView,
+    /// Snapshot accounting time in Unix seconds.
+    pub as_of: u64,
     pub buildings: Vec<BuildingView>,
 }
 
