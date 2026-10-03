@@ -79,3 +79,14 @@ resource rates use units per hour. The server injects a Clock (wall clock in
 production, manual clock in tests) and calls pure rules with explicit `now`.
 A one-second tick processes timers; lazy access handles offline progress. Clock
 corrections must not reverse accounted time or grant the same production twice.
+
+## City production
+
+Production and storage contributions use per-level growth curves in buildings.yaml.
+At level 1, farms/lumber mills produce 600/hour, quarries 300/hour and goldmines
+120/hour. City Hall starts with 2,000 capacity per resource, each producer adds
+500 for its resource, and a storehouse adds 5,000 per resource. Early farm builds
+are 45 seconds, upgrades 60 seconds, and City Hall upgrades begin at two minutes.
+Integer accounting preserves fractions across collections; offline accrual caps
+at storage. Production never removes existing over-cap resources. Snapshots carry
+resources, rates_per_hour, capacity and as_of (Unix seconds) for client interpolation.

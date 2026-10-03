@@ -4,6 +4,7 @@
 # `requires_city_hall`: minimum City Hall level before this can be built.
 buildings:
   - id: city_hall
+    capacity: { base: { food: 2000, wood: 2000, stone: 2000, gold: 2000 }, growth: 1.6 }
     name: City Hall
     footprint: 4
     max_level: 25
@@ -12,9 +13,11 @@ buildings:
     cost: { base: { food: 0, wood: 0, stone: 0, gold: 0 }, growth: 1.0 }
     upgrade_cost: { base: { food: 300, wood: 300, stone: 0, gold: 0 }, growth: 1.55 }
     build_time: { base_s: 0, growth: 1.0 }
-    upgrade_time: { base_s: 30, growth: 1.6 }
+    upgrade_time: { base_s: 120, growth: 1.6 }
 
   - id: farm
+    production: { base: { food: 600, wood: 0, stone: 0, gold: 0 }, growth: 1.5 }
+    capacity: { base: { food: 500, wood: 0, stone: 0, gold: 0 }, growth: 1.5 }
     name: Farm
     footprint: 2
     max_level: 25
@@ -22,10 +25,12 @@ buildings:
     requires_city_hall: 1
     cost: { base: { food: 0, wood: 50, stone: 0, gold: 0 }, growth: 1.0 }
     upgrade_cost: { base: { food: 0, wood: 80, stone: 0, gold: 0 }, growth: 1.5 }
-    build_time: { base_s: 5, growth: 1.0 }
-    upgrade_time: { base_s: 8, growth: 1.55 }
+    build_time: { base_s: 45, growth: 1.0 }
+    upgrade_time: { base_s: 60, growth: 1.55 }
 
   - id: lumber_mill
+    production: { base: { food: 0, wood: 600, stone: 0, gold: 0 }, growth: 1.5 }
+    capacity: { base: { food: 0, wood: 500, stone: 0, gold: 0 }, growth: 1.5 }
     name: Lumber Mill
     footprint: 2
     max_level: 25
@@ -33,10 +38,12 @@ buildings:
     requires_city_hall: 1
     cost: { base: { food: 50, wood: 0, stone: 0, gold: 0 }, growth: 1.0 }
     upgrade_cost: { base: { food: 80, wood: 0, stone: 0, gold: 0 }, growth: 1.5 }
-    build_time: { base_s: 5, growth: 1.0 }
-    upgrade_time: { base_s: 8, growth: 1.55 }
+    build_time: { base_s: 45, growth: 1.0 }
+    upgrade_time: { base_s: 60, growth: 1.55 }
 
   - id: quarry
+    production: { base: { food: 0, wood: 0, stone: 300, gold: 0 }, growth: 1.5 }
+    capacity: { base: { food: 0, wood: 0, stone: 500, gold: 0 }, growth: 1.5 }
     name: Quarry
     footprint: 2
     max_level: 25
@@ -48,6 +55,8 @@ buildings:
     upgrade_time: { base_s: 20, growth: 1.55 }
 
   - id: goldmine
+    production: { base: { food: 0, wood: 0, stone: 0, gold: 120 }, growth: 1.5 }
+    capacity: { base: { food: 0, wood: 0, stone: 0, gold: 500 }, growth: 1.5 }
     name: Goldmine
     footprint: 2
     max_level: 25
@@ -59,6 +68,7 @@ buildings:
     upgrade_time: { base_s: 90, growth: 1.55 }
 
   - id: storehouse
+    capacity: { base: { food: 5000, wood: 5000, stone: 5000, gold: 5000 }, growth: 1.6 }
     name: Storehouse
     footprint: 2
     max_level: 25
@@ -111,7 +121,7 @@ buildings:
     cost: { base: { food: 300, wood: 300, stone: 100, gold: 0 }, growth: 1.0 }
     upgrade_cost: { base: { food: 300, wood: 300, stone: 100, gold: 0 }, growth: 1.55 }
     build_time: { base_s: 30, growth: 1.0 }
-    upgrade_time: { base_s: 30, growth: 1.6 }
+    upgrade_time: { base_s: 120, growth: 1.6 }
 
   - id: hospital
     name: Hospital

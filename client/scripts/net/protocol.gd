@@ -3,6 +3,8 @@ class_name Protocol
 ## snake_case "type" field. Keep in sync with the Rust crate and bump VERSION
 ## together with PROTOCOL_VERSION on breaking changes.
 
+# City snapshots carry resources, rates_per_hour, capacity (food/wood/stone/gold)
+# and as_of (Unix seconds), plus size and buildings. Production is server-owned.
 const VERSION := 2
 
 

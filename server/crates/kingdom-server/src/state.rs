@@ -114,15 +114,26 @@ impl Kingdom {
     }
 
     /// Fetch the authoritative persisted city snapshot.
-    pub fn city_view(&self, player: PlayerId) -> Option<CityView> {
-        let store = self.store.lock().ok()?;
-        store.city(player).ok()?.map(|c| self.to_view(&c))
+    pub fn city_view(&self, player: PlayerId) -> Result<CityView, ErrorCode> {
+        let store = self.store.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut city = store
+            .city(player)
+            .map_err(|_| ErrorCode::Internal)?
+            .ok_or(ErrorCode::NotLoggedIn)?;
+        city.collect(self.now(), &self.data);
+        store
+            .save_city(player, &city)
+            .map_err(|_| ErrorCode::Internal)?;
+        Ok(self.to_view(&city))
     }
 
     fn to_view(&self, city: &City) -> CityView {
         let r = city.resources;
         CityView {
             size: city.size,
+            as_of: city.as_of.unwrap_or_else(|| self.now()),
+            rates_per_hour: resource_view(city.rates_per_hour(&self.data)),
+            capacity: resource_view(city.capacity(&self.data)),
             resources: ResourcesView {
                 food: r.food,
                 wood: r.wood,
@@ -155,6 +166,15 @@ impl Kingdom {
 /// Player names: 3-16 chars of ASCII letters, digits or underscore.
 pub fn valid_name(name: &str) -> bool {
     (3..=16).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+fn resource_view(r: data::Resources) -> ResourcesView {
+    ResourcesView {
+        food: r.food,
+        wood: r.wood,
+        stone: r.stone,
+        gold: r.gold,
+    }
 }
 
 #[cfg(test)]
