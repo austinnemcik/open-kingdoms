@@ -1,0 +1,159 @@
+# Talent trees. Spec: docs/design/04-commanders.md section 6.
+# `mods` values are PER RANK. `requires_points` = points already spent in the same tree.
+# Each tree: 6 minor nodes (3 ranks) + 2 major nodes + 1 capstone (1 rank each) = 21 points.
+talent_trees:
+  - id: infantry
+    name: "Infantry"
+    nodes:
+      - { id: infantry_m1, name: "Whetstones", max_rank: 3, requires_points: 0, when: always, mods: { infantry_attack_pct: 1.0 } }
+      - { id: infantry_m2, name: "Layered Mail", max_rank: 3, requires_points: 0, when: always, mods: { infantry_defense_pct: 1.0 } }
+      - { id: infantry_k1, name: "Locked Shields", max_rank: 1, requires_points: 6, when: always, mods: { infantry_health_pct: 3.0 } }
+      - { id: infantry_m3, name: "Long Marches", max_rank: 3, requires_points: 7, when: always, mods: { infantry_health_pct: 1.0 } }
+      - { id: infantry_m4, name: "Steady Pace", max_rank: 3, requires_points: 7, when: only_infantry, mods: { march_speed_pct: 1.5 } }
+      - { id: infantry_k2, name: "Riposte", max_rank: 1, requires_points: 13, when: always, mods: { counter_damage_pct: 5.0 } }
+      - { id: infantry_m5, name: "Press Forward", max_rank: 3, requires_points: 14, when: always, mods: { normal_damage_pct: 1.0 } }
+      - { id: infantry_m6, name: "Brace", max_rank: 3, requires_points: 14, when: always, mods: { damage_taken_pct: -1.0 } }
+      - { id: infantry_c, name: "Unbroken Line", max_rank: 1, requires_points: 20, when: only_infantry, mods: { infantry_attack_pct: 4.0, infantry_defense_pct: 4.0 } }
+
+  - id: cavalry
+    name: "Cavalry"
+    nodes:
+      - { id: cavalry_m1, name: "Sharpened Lances", max_rank: 3, requires_points: 0, when: always, mods: { cavalry_attack_pct: 1.0 } }
+      - { id: cavalry_m2, name: "Strong Remounts", max_rank: 3, requires_points: 0, when: always, mods: { cavalry_health_pct: 1.0 } }
+      - { id: cavalry_k1, name: "Momentum", max_rank: 1, requires_points: 6, when: always, mods: { normal_damage_pct: 3.0 } }
+      - { id: cavalry_m3, name: "Quilted Barding", max_rank: 3, requires_points: 7, when: always, mods: { cavalry_defense_pct: 1.0 } }
+      - { id: cavalry_m4, name: "Light Tack", max_rank: 3, requires_points: 7, when: only_cavalry, mods: { march_speed_pct: 2.0 } }
+      - { id: cavalry_k2, name: "Run Them Down", max_rank: 1, requires_points: 13, when: field, mods: { damage_dealt_pct: 3.0 } }
+      - { id: cavalry_m5, name: "War Cries", max_rank: 3, requires_points: 14, when: always, mods: { rage_gain_pct: 1.0 } }
+      - { id: cavalry_m6, name: "Wheel and Strike", max_rank: 3, requires_points: 14, when: always, mods: { skill_damage_pct: 1.5 } }
+      - { id: cavalry_c, name: "Thunder of Hooves", max_rank: 1, requires_points: 20, when: only_cavalry, mods: { cavalry_attack_pct: 5.0, march_speed_pct: 5.0 } }
+
+  - id: archer
+    name: "Archery"
+    nodes:
+      - { id: archer_m1, name: "Bodkin Points", max_rank: 3, requires_points: 0, when: always, mods: { archer_attack_pct: 1.0 } }
+      - { id: archer_m2, name: "Padded Jacks", max_rank: 3, requires_points: 0, when: always, mods: { archer_defense_pct: 1.0 } }
+      - { id: archer_k1, name: "Ranging Shots", max_rank: 1, requires_points: 6, when: always, mods: { skill_damage_pct: 3.0 } }
+      - { id: archer_m3, name: "Field Stakes", max_rank: 3, requires_points: 7, when: always, mods: { archer_health_pct: 1.0 } }
+      - { id: archer_m4, name: "Quick Nock", max_rank: 3, requires_points: 7, when: always, mods: { normal_damage_pct: 1.0 } }
+      - { id: archer_k2, name: "Arrow Storm", max_rank: 1, requires_points: 13, when: always, mods: { rage_gain_pct: 4.0 } }
+      - { id: archer_m5, name: "Marked Targets", max_rank: 3, requires_points: 14, when: always, mods: { skill_damage_pct: 1.5 } }
+      - { id: archer_m6, name: "Open Order", max_rank: 3, requires_points: 14, when: always, mods: { skill_damage_taken_pct: -1.5 } }
+      - { id: archer_c, name: "Darkened Sky", max_rank: 1, requires_points: 20, when: only_archer, mods: { archer_attack_pct: 5.0, skill_damage_pct: 4.0 } }
+
+  - id: siege
+    name: "Siegecraft"
+    nodes:
+      - { id: siege_m1, name: "Taut Skeins", max_rank: 3, requires_points: 0, when: always, mods: { siege_attack_pct: 1.5 } }
+      - { id: siege_m2, name: "Wet Hides", max_rank: 3, requires_points: 0, when: always, mods: { siege_defense_pct: 1.5 } }
+      - { id: siege_k1, name: "Ox Teams", max_rank: 1, requires_points: 6, when: always, mods: { troop_load_pct: 8.0 } }
+      - { id: siege_m3, name: "Spare Frames", max_rank: 3, requires_points: 7, when: always, mods: { siege_health_pct: 1.5 } }
+      - { id: siege_m4, name: "Corduroy Roads", max_rank: 3, requires_points: 7, when: always, mods: { march_speed_pct: 1.0 } }
+      - { id: siege_k2, name: "Breaching Shot", max_rank: 1, requires_points: 13, when: always, mods: { structure_damage_pct: 10.0 } }
+      - { id: siege_m5, name: "Sappers", max_rank: 3, requires_points: 14, when: always, mods: { structure_damage_pct: 3.0 } }
+      - { id: siege_m6, name: "Earth Ramparts", max_rank: 3, requires_points: 14, when: always, mods: { damage_taken_pct: -1.0 } }
+      - { id: siege_c, name: "Wall Breaker", max_rank: 1, requires_points: 20, when: attacking_structure, mods: { attack_pct: 5.0, structure_damage_pct: 10.0 } }
+
+  - id: leadership
+    name: "Leadership"
+    nodes:
+      - { id: leadership_m1, name: "Roll Call", max_rank: 3, requires_points: 0, when: always, mods: { march_capacity_pct: 1.0 } }
+      - { id: leadership_m2, name: "Shared Rations", max_rank: 3, requires_points: 0, when: always, mods: { health_pct: 0.7 } }
+      - { id: leadership_k1, name: "Combined Arms", max_rank: 1, requires_points: 6, when: mixed, mods: { attack_pct: 2.0 } }
+      - { id: leadership_m3, name: "Clear Orders", max_rank: 3, requires_points: 7, when: always, mods: { attack_pct: 0.7 } }
+      - { id: leadership_m4, name: "Signal Flags", max_rank: 3, requires_points: 7, when: always, mods: { defense_pct: 0.7 } }
+      - { id: leadership_k2, name: "Banner Bearer", max_rank: 1, requires_points: 13, when: rally, mods: { damage_dealt_pct: 3.0 } }
+      - { id: leadership_m5, name: "Quartermasters", max_rank: 3, requires_points: 14, when: always, mods: { march_capacity_pct: 1.0 } }
+      - { id: leadership_m6, name: "Staff Officers", max_rank: 3, requires_points: 14, when: always, mods: { rage_gain_pct: 1.0 } }
+      - { id: leadership_c, name: "Grand Army", max_rank: 1, requires_points: 20, when: mixed, mods: { attack_pct: 2.0, defense_pct: 2.0, health_pct: 2.0 } }
+
+  - id: garrison
+    name: "Garrison"
+    nodes:
+      - { id: garrison_m1, name: "Wall Drill", max_rank: 3, requires_points: 0, when: garrison, mods: { defense_pct: 1.5 } }
+      - { id: garrison_m2, name: "Stocked Cellars", max_rank: 3, requires_points: 0, when: garrison, mods: { health_pct: 1.5 } }
+      - { id: garrison_k1, name: "Murder Holes", max_rank: 1, requires_points: 6, when: garrison, mods: { counter_damage_pct: 5.0 } }
+      - { id: garrison_m3, name: "Tower Crews", max_rank: 3, requires_points: 7, when: garrison, mods: { attack_pct: 1.5 } }
+      - { id: garrison_m4, name: "Night Watch", max_rank: 3, requires_points: 7, when: garrison, mods: { skill_damage_taken_pct: -2.0 } }
+      - { id: garrison_k2, name: "Sally Port", max_rank: 1, requires_points: 13, when: garrison, mods: { skill_damage_pct: 6.0 } }
+      - { id: garrison_m5, name: "Boiling Pitch", max_rank: 3, requires_points: 14, when: garrison, mods: { normal_damage_pct: 1.5 } }
+      - { id: garrison_m6, name: "Stout Gates", max_rank: 3, requires_points: 14, when: garrison, mods: { damage_taken_pct: -1.5 } }
+      - { id: garrison_c, name: "Last Bastion", max_rank: 1, requires_points: 20, when: garrison, mods: { damage_taken_pct: -5.0, rage_gain_pct: 8.0 } }
+
+  - id: skirmish
+    name: "Skirmish"
+    nodes:
+      - { id: skirmish_m1, name: "First Blood", max_rank: 3, requires_points: 0, when: field, mods: { normal_damage_pct: 1.0 } }
+      - { id: skirmish_m2, name: "Loose Formation", max_rank: 3, requires_points: 0, when: field, mods: { skill_damage_taken_pct: -1.5 } }
+      - { id: skirmish_k1, name: "Flanking", max_rank: 1, requires_points: 6, when: field, mods: { damage_dealt_pct: 2.0 } }
+      - { id: skirmish_m3, name: "Harry", max_rank: 3, requires_points: 7, when: field, mods: { counter_damage_pct: 1.5 } }
+      - { id: skirmish_m4, name: "Scouts Ahead", max_rank: 3, requires_points: 7, when: always, mods: { march_speed_pct: 1.0 } }
+      - { id: skirmish_k2, name: "Bloodlust", max_rank: 1, requires_points: 13, when: field, mods: { rage_gain_pct: 5.0 } }
+      - { id: skirmish_m5, name: "Exploit the Gap", max_rank: 3, requires_points: 14, when: field, mods: { skill_damage_pct: 1.5 } }
+      - { id: skirmish_m6, name: "Give Ground", max_rank: 3, requires_points: 14, when: field, mods: { damage_taken_pct: -1.0 } }
+      - { id: skirmish_c, name: "Decisive Moment", max_rank: 1, requires_points: 20, when: troops_above_50, mods: { damage_dealt_pct: 4.0 } }
+
+  - id: conquest
+    name: "Conquest"
+    nodes:
+      - { id: conquest_m1, name: "Scaling Ladders", max_rank: 3, requires_points: 0, when: attacking_structure, mods: { attack_pct: 1.0 } }
+      - { id: conquest_m2, name: "Siege Lines", max_rank: 3, requires_points: 0, when: attacking_structure, mods: { defense_pct: 1.0 } }
+      - { id: conquest_k1, name: "Call to Arms", max_rank: 1, requires_points: 6, when: always, mods: { rally_capacity_pct: 3.0 } }
+      - { id: conquest_m3, name: "Undermining", max_rank: 3, requires_points: 7, when: always, mods: { structure_damage_pct: 3.0 } }
+      - { id: conquest_m4, name: "Plunder Carts", max_rank: 3, requires_points: 7, when: always, mods: { troop_load_pct: 3.0 } }
+      - { id: conquest_k2, name: "Storming Party", max_rank: 1, requires_points: 13, when: attacking_structure, mods: { damage_dealt_pct: 3.0 } }
+      - { id: conquest_m5, name: "War Drums", max_rank: 3, requires_points: 14, when: rally, mods: { attack_pct: 1.0 } }
+      - { id: conquest_m6, name: "Siege Shelters", max_rank: 3, requires_points: 14, when: attacking_structure, mods: { damage_taken_pct: -1.0 } }
+      - { id: conquest_c, name: "Gates Thrown Open", max_rank: 1, requires_points: 20, when: rally, mods: { damage_dealt_pct: 4.0, rally_capacity_pct: 3.0 } }
+
+  - id: gathering
+    name: "Gathering"
+    nodes:
+      - { id: gathering_m1, name: "Sharp Sickles", max_rank: 3, requires_points: 0, when: gathering, mods: { gather_speed_pct: 4.0 } }
+      - { id: gathering_m2, name: "Deep Baskets", max_rank: 3, requires_points: 0, when: always, mods: { troop_load_pct: 4.0 } }
+      - { id: gathering_k1, name: "Known Paths", max_rank: 1, requires_points: 6, when: always, mods: { march_speed_pct: 5.0 } }
+      - { id: gathering_m3, name: "Felling Crews", max_rank: 3, requires_points: 7, when: gathering, mods: { gather_speed_wood_pct: 4.0, gather_speed_food_pct: 4.0 } }
+      - { id: gathering_m4, name: "Pick and Pan", max_rank: 3, requires_points: 7, when: gathering, mods: { gather_speed_stone_pct: 4.0, gather_speed_gold_pct: 4.0 } }
+      - { id: gathering_k2, name: "Camp Palisade", max_rank: 1, requires_points: 13, when: gathering, mods: { damage_taken_pct: -10.0 } }
+      - { id: gathering_m5, name: "Double Shifts", max_rank: 3, requires_points: 14, when: gathering, mods: { gather_speed_pct: 4.0 } }
+      - { id: gathering_m6, name: "Wagon Trains", max_rank: 3, requires_points: 14, when: always, mods: { troop_load_pct: 4.0 } }
+      - { id: gathering_c, name: "Bounty of the Land", max_rank: 1, requires_points: 20, when: gathering, mods: { gather_speed_pct: 15.0 } }
+
+  - id: peacekeeping
+    name: "Peacekeeping"
+    nodes:
+      - { id: peacekeeping_m1, name: "Patrol Routes", max_rank: 3, requires_points: 0, when: vs_pve, mods: { barbarian_damage_pct: 2.0 } }
+      - { id: peacekeeping_m2, name: "Trail Sense", max_rank: 3, requires_points: 0, when: always, mods: { march_speed_pct: 1.0 } }
+      - { id: peacekeeping_k1, name: "Veteran's Tales", max_rank: 1, requires_points: 6, when: always, mods: { commander_xp_pct: 5.0 } }
+      - { id: peacekeeping_m3, name: "Ambush Drills", max_rank: 3, requires_points: 7, when: vs_pve, mods: { damage_taken_pct: -2.0 } }
+      - { id: peacekeeping_m4, name: "Camp Raiders", max_rank: 3, requires_points: 7, when: vs_pve, mods: { skill_damage_pct: 2.0 } }
+      - { id: peacekeeping_k2, name: "Bounty Ledger", max_rank: 1, requires_points: 13, when: always, mods: { commander_xp_pct: 5.0 } }
+      - { id: peacekeeping_m5, name: "Relentless Pursuit", max_rank: 3, requires_points: 14, when: vs_pve, mods: { barbarian_damage_pct: 2.0 } }
+      - { id: peacekeeping_m6, name: "Quick Recovery", max_rank: 3, requires_points: 14, when: vs_pve, mods: { rage_gain_pct: 2.0 } }
+      - { id: peacekeeping_c, name: "Scourge of Raiders", max_rank: 1, requires_points: 20, when: vs_pve, mods: { barbarian_damage_pct: 8.0 } }
+
+  - id: mobility
+    name: "Mobility"
+    nodes:
+      - { id: mobility_m1, name: "Light Kit", max_rank: 3, requires_points: 0, when: always, mods: { march_speed_pct: 2.0 } }
+      - { id: mobility_m2, name: "Rearguard", max_rank: 3, requires_points: 0, when: field, mods: { damage_taken_pct: -1.0 } }
+      - { id: mobility_k1, name: "Forced Pace", max_rank: 1, requires_points: 6, when: always, mods: { march_speed_pct: 4.0 } }
+      - { id: mobility_m3, name: "Hit and Run", max_rank: 3, requires_points: 7, when: field, mods: { normal_damage_pct: 1.0 } }
+      - { id: mobility_m4, name: "Fresh Legs", max_rank: 3, requires_points: 7, when: troops_above_50, mods: { attack_pct: 1.0 } }
+      - { id: mobility_k2, name: "Slip Away", max_rank: 1, requires_points: 13, when: troops_below_50, mods: { march_speed_pct: 10.0 } }
+      - { id: mobility_m5, name: "Outriders", max_rank: 3, requires_points: 14, when: always, mods: { march_speed_pct: 2.0 } }
+      - { id: mobility_m6, name: "Sudden Onset", max_rank: 3, requires_points: 14, when: field, mods: { rage_gain_pct: 1.5 } }
+      - { id: mobility_c, name: "Lightning Columns", max_rank: 1, requires_points: 20, when: always, mods: { march_speed_pct: 6.0 } }
+
+  - id: support
+    name: "Support"
+    nodes:
+      - { id: support_m1, name: "Field Surgeons", max_rank: 3, requires_points: 0, when: always, mods: { heal_potency_pct: 4.0 } }
+      - { id: support_m2, name: "Steady Nerves", max_rank: 3, requires_points: 0, when: always, mods: { skill_damage_taken_pct: -1.5 } }
+      - { id: support_k1, name: "Rallying Horn", max_rank: 1, requires_points: 6, when: always, mods: { rage_gain_pct: 3.0 } }
+      - { id: support_m3, name: "Supply Lines", max_rank: 3, requires_points: 7, when: always, mods: { health_pct: 1.0 } }
+      - { id: support_m4, name: "Drummers", max_rank: 3, requires_points: 7, when: always, mods: { rage_gain_pct: 1.0 } }
+      - { id: support_k2, name: "Reserves", max_rank: 1, requires_points: 13, when: troops_below_50, mods: { defense_pct: 5.0 } }
+      - { id: support_m5, name: "Morale Officers", max_rank: 3, requires_points: 14, when: always, mods: { defense_pct: 1.0 } }
+      - { id: support_m6, name: "Signal Fires", max_rank: 3, requires_points: 14, when: always, mods: { skill_damage_pct: 1.0 } }
+      - { id: support_c, name: "Hold Together", max_rank: 1, requires_points: 20, when: always, mods: { damage_taken_pct: -3.0, heal_potency_pct: 10.0 } }

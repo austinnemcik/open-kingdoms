@@ -1,0 +1,127 @@
+# World map constants. Spec: docs/design/06-world-map.md.
+world:
+  size: 1200                      # tiles per side
+  center: [600, 600]
+  chunk_size: 30                  # terrain chunk, spawn cell and AOI unit (40 x 40 chunks)
+  fog_cell_size: 15               # 80 x 80 fog cells per player
+  zones:                          # by Euclidean distance r from center
+    crown: { r_max: 140 }
+    heartlands: { r_min: 146, r_max: 340 }
+    outlands: { r_min: 346 }
+  rings:                          # impassable mountain bands
+    - { r_min: 140, r_max: 146, pass_level: 3, pass_angles_deg: [45, 135, 225, 315] }
+    - { r_min: 340, r_max: 346, pass_level: 2, pass_angles_deg: [0, 60, 120, 180, 240, 300] }
+  spokes: { angles_deg: [30, 90, 150, 210, 270, 330], width: 6, r_min: 346, pass_level: 1, pass_r: 520 }
+  pass_gap_width: 7
+  provinces:                      # outlands sector k covers angles [60k - 30, 60k + 30) degrees
+    - { id: province_0, name: "Sunder Coast" }
+    - { id: province_1, name: "Greenmere" }
+    - { id: province_2, name: "Stonewold" }
+    - { id: province_3, name: "Ashfall Reach" }
+    - { id: province_4, name: "Hollow Vale" }
+    - { id: province_5, name: "Frostmarch" }
+  terrain:
+    noise_octaves: [ { cell: 64, weight: 0.5 }, { cell: 32, weight: 0.3 }, { cell: 16, weight: 0.2 } ]
+    water_below: 0.27             # elevation
+    mountain_above: 0.80
+    hills_above: 0.68
+    forest_moisture_above: 0.58
+    clear_radius: 8               # plains disc around passes, sanctums, throne
+  footprints: { city: 3, node: 1, barbarian: 1, warcamp: 3, sanctum: 5, throne: 7, banner: 1, stronghold: 3 }
+
+  nodes:
+    gather_rate_per_hour: { food: 18000, wood: 18000, stone: 13500, gold: 9000 }
+    load_weight: { food: 1.0, wood: 1.0, stone: 1.33, gold: 2.0 }
+    amount:                       # by node level; food and wood use `base`, stone x0.75, gold x0.5
+      base: [40000, 100000, 200000, 400000, 700000, 1200000]
+      stone_mult: 0.75
+      gold_mult: 0.5
+    type_weights: { food: 35, wood: 35, stone: 20, gold: 10 }
+    density_per_1000_tiles: { outlands: 5, heartlands: 7, crown: 9 }
+    level_weights:                # index = level - 1
+      outlands: [25, 30, 25, 15, 5, 0]
+      heartlands: [0, 0, 20, 35, 30, 15]
+      crown: [0, 0, 0, 0, 40, 60]
+    stale_after_s: 28800          # partially gathered, unattended nodes despawn
+    respawn_sweep_s: 60
+
+  barbarians:
+    max_level: 25
+    troop_count: { base: 500, exponent: 1.7 }        # round_to_100(base * level^exponent)
+    tier_by_level: [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5]
+    composition: { infantry: 0.34, cavalry: 0.33, archer: 0.33 }
+    skill: { every_n_attacks: 8, potency: 300 }
+    density_per_1000_tiles: { outlands: 3, heartlands: 3, crown: 4 }
+    level_range: { outlands: [1, 12], heartlands: [10, 20], crown: [18, 25] }
+    stamina_cost: 36
+    reset_after_s: 30             # out of combat -> troops restored
+    commander_xp: { base: 30, exponent: 1.8 }        # round(base * level^exponent)
+    resources: { base: 200, exponent: 1.8 }          # round_to_10, one seeded resource type
+    drops:                        # independent rolls, see 06 section 5.3
+      - { item: speedup_any_5m, chance: 0.30, count_per_10_levels: 1, min_level: 1 }
+      - { item: speedup_any_60m, chance: 0.02, count: 1, min_level: 10 }
+      - { item: xp_tome_1k, chance: 0.10, count_per_10_levels: 1, min_level: 1 }
+      - { item: sculpture_universal_veteran, chance: 0.03, count: 1, min_level: 5 }
+      - { item: sculpture_universal_renowned, chance: 0.01, count: 1, min_level: 15 }
+
+  stamina: { cap: 600, regen_interval_s: 120 }
+
+  warcamps:
+    stamina_cost: 60              # every rally participant
+    respawn_s: 7200
+    levels:
+      - { level: 1, zone: outlands, count: 30, troops: 150000, tier: 3, durability: 0 }
+      - { level: 2, zone: outlands, count: 18, troops: 300000, tier: 3, durability: 0 }
+      - { level: 3, zone: heartlands, count: 12, troops: 500000, tier: 4, durability: 0 }
+      - { level: 4, zone: heartlands, count: 6, troops: 800000, tier: 4, durability: 0 }
+      - { level: 5, zone: crown, count: 4, troops: 1200000, tier: 5, durability: 0 }
+    rewards:                      # per participant; alliance gift per 07 section 6
+      - { level: 1, items: { speedup_any_60m: 1, sculpture_universal_veteran: 2, xp_tome_10k: 1 }, gift_tier: 1 }
+      - { level: 2, items: { speedup_any_60m: 2, sculpture_universal_veteran: 4, xp_tome_10k: 2 }, gift_tier: 2 }
+      - { level: 3, items: { speedup_any_60m: 3, sculpture_universal_renowned: 2, xp_tome_10k: 3 }, gift_tier: 3 }
+      - { level: 4, items: { speedup_any_3h: 2, sculpture_universal_renowned: 4, xp_tome_10k: 5 }, gift_tier: 4 }
+      - { level: 5, items: { speedup_any_3h: 3, sculpture_universal_legendary: 2, xp_tome_50k: 2 }, gift_tier: 5 }
+
+  passes:
+    levels:
+      - { level: 1, opens_day: 3, durability: 300000, guardians: { troops: 100000, tier: 3 } }
+      - { level: 2, opens_day: 14, durability: 800000, guardians: { troops: 400000, tier: 4 } }
+      - { level: 3, opens_day: 28, durability: 1500000, guardians: { troops: 900000, tier: 5 } }
+
+  sanctums:
+    kinds:
+      - { id: shrine, level: 1, opens_day: 7, r: 560, angles_deg: [-12, 12, 48, 72, 108, 132, 168, 192, 228, 252, 288, 312],
+          durability: 400000, guardians: { troops: 150000, tier: 3 } }
+      - { id: sanctum, level: 2, opens_day: 21, r: 245, angles_deg: [30, 90, 150, 210, 270, 330],
+          durability: 900000, guardians: { troops: 500000, tier: 4 } }
+      - { id: great_sanctum, level: 3, opens_day: 35, r: 85, angles_deg: [0, 90, 180, 270],
+          durability: 1500000, guardians: { troops: 900000, tier: 5 } }
+      - { id: throne, level: 4, opens_day: 49, r: 0, angles_deg: [0],
+          durability: 3000000, guardians: { troops: 1500000, tier: 5 } }
+    buffs:                        # cycled over the sites of each kind in angle order
+      shrine: [ { gather_speed_pct: 5 }, { build_speed_pct: 2 }, { research_speed_pct: 2 }, { train_speed_pct: 5 } ]
+      sanctum: [ { infantry_defense_pct: 3 }, { cavalry_defense_pct: 3 }, { archer_defense_pct: 3 } ]
+      great_sanctum: [ { attack_pct: 3 }, { health_pct: 3 } ]
+      throne: [ { march_speed_pct: 5, attack_pct: 2, defense_pct: 2 } ]
+    protect_after_capture_s: 86400
+
+  march:
+    min_travel_s: 5
+    chase_timeout_s: 600
+    chase_repath_ticks: 5
+    astar_max_expansions: 400000
+
+  scouting:
+    explore_radius_cells: 1
+    start_explored_radius_cells: 3
+
+  teleport:
+    min_gap_tiles: 1
+    novice_max_city_hall: 7
+    novice_max_account_age_s: 604800
+    spawn_r_min: 400
+    spawn_r_max: 700
+
+  shields:
+    new_player_s: 259200
+    war_frenzy_s: 900             # after attacking/scouting a player: cannot shield

@@ -103,3 +103,30 @@ ID, what changed, and anything the next run should know.
 - Extended pure rule and WebSocket tests for construction, cancellation, boundary
   coordinates, ownership and restart completion. Godot e2e renders a level-zero farm.
 - Full client build/upgrade UI remains P1-07/P1-08; audit hardening remains P1-H1.
+
+## 2026-10-03 — Design specs (`docs/design/`)
+
+- Added implementation-ready specs `docs/design/00`–`11` plus
+  `ROADMAP_PROPOSAL.md` (Phases 2–6 as PR-sized tasks, and amendments to the
+  existing Phase 1 tasks). Docs only; no code or `data/` changes.
+- Proposed balance data lives in `docs/design/data/*.yaml` and is meant to be
+  copied into `data/` by the task that implements each system. The building
+  schema changes from growth curves to explicit `levels:` (00 §1.2, 01 §2), and
+  there are 19 buildings instead of 12 (7 new models needed).
+- `buildings.yaml`, `troops.yaml`, `research.yaml` and every `<!-- GEN:… -->`
+  table are generated: edit `docs/design/tools/okdata.py`, then run
+  `python build_all.py` in that folder. Never hand-edit generated tables.
+- `tools/sim_economy.py` is the pacing sim (active player City Hall 25 on day
+  ~105, regular ~126; City Hall 10 on day 2–4). `tools/sim_combat.py` is the
+  reference battle engine whose output the Rust engine must reproduce (P2-10).
+  `tools/check_consistency.py` checks item ids, modifier keys, section
+  references, the message catalogue and the speedup budget; run it after any
+  spec edit. All three need Python 3 with `pyyaml`.
+- Next run: the roadmap itself is unchanged. Paste the tasks from
+  `ROADMAP_PROPOSAL.md` into `ROADMAP.md` when a phase starts, and apply the
+  "Phase 1 amendments" table to the remaining Phase 1 tasks.
+- Known gaps: the specs were written in parallel with P1-01 … P1-05, which
+  already merged with different choices in places: timestamps are Unix seconds
+  (spec: milliseconds), cancel refunds the full cost (spec: 50 %), City Hall
+  prerequisites and the production/storage model differ from 01. Reconcile
+  these (change code or spec) before building further on them.

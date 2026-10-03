@@ -1,0 +1,38 @@
+# Combat constants. Spec: docs/design/05-combat.md.
+combat:
+  tick_ms: 1000
+  k_damage: 200.0
+  small_army_threshold: 200        # below this, size(N) = N / sqrt(threshold)
+  counter_advantage: 1.20
+  counter_disadvantage: 0.90
+  counters: { infantry: cavalry, cavalry: archer, archer: infantry }   # key beats value
+  min_factor: 0.1                  # floor for every (1 + pct/100) factor
+  normal_potency: 100
+  counter_potency: 100
+  rage:
+    max: 1000
+    per_attack: 90
+    per_counter: 10
+    counter_cap_per_tick: 30
+  severe_ratio: { pvp: 0.40, pve: 0.10 }
+  engage_range_tiles: 1.5
+  aoe_radius_tiles: 3.0
+  max_timed_effects: 16
+  watchtower: { size_term: 100.0, attack: 200.0 }
+  city:
+    durability_loss_per_defeat: 0.20   # × max × (1 + siege_share)
+    burn_duration_s: 1800
+    burn_seconds_to_empty: 9000        # durability lost per second = max / this
+    regen_seconds_to_full: 14400
+    raze_durability_reset: 0.5
+    raze_shield_s: 14400
+  structure:
+    k_structure: 4.0
+    siege_bonus: 2.0                   # S = k × size(N) × (1 + siege_bonus × siege_share)
+    regen_seconds_to_full: 7200
+    regen_delay_s: 60
+  rally:
+    prep_options_s: [300, 600, 1800]
+  report:
+    timeline_sample_ticks: 5
+    timeline_max_points: 240

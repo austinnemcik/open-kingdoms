@@ -1,0 +1,422 @@
+# Commanders. Spec: docs/design/04-commanders.md. Effect types: docs/design/05-combat.md section 6.
+# Every array has 5 entries = value at skill level 1..5. Skill n unlocks at star n.
+# `text` placeholders {1}, {2}, ... are the arrays of the skill in order of appearance.
+# All figures are historical; all skill names, texts and numbers are original.
+commanders:
+  # ------------------------------------------------------------- LEGENDARY
+  - id: hannibal
+    name: "Hannibal Barca"
+    title: "Terror of the Republic"
+    origin: "Carthage, 247-183 BC"
+    rarity: legendary
+    trees: [leadership, skirmish, conquest]
+    skills:
+      - { id: hannibal_1, name: "Closing Jaws", kind: active,
+          text: "Hits up to 3 enemies (potency {1}) and lowers the target's defense by {2}% for 3 s.",
+          effects: [ { type: damage, potency: [600, 700, 800, 900, 1100], targets: 3 },
+                     { type: debuff, mods: { defense_pct: [-10, -12, -14, -16, -20] }, ticks: 3 } ] }
+      - { id: hannibal_2, name: "Host of Many Peoples", kind: passive,
+          text: "With 3 or more troop types: attack +{1}%, defense +{2}%.",
+          effects: [ { type: mods, when: mixed, mods: { attack_pct: [3, 4, 5, 6, 8], defense_pct: [3, 4, 5, 6, 8] } } ] }
+      - { id: hannibal_3, name: "Over the Mountains", kind: passive,
+          text: "March speed +{1}%, troop capacity +{2}%.",
+          effects: [ { type: mods, when: always, mods: { march_speed_pct: [5, 7, 9, 11, 15], march_capacity_pct: [3, 4, 5, 6, 8] } } ] }
+      - { id: hannibal_4, name: "Trampling Charge", kind: passive, trigger: { every_n_attacks: 6 },
+          text: "Every 6th attack deals extra damage (potency {1}).",
+          effects: [ { type: damage, potency: [200, 250, 300, 350, 450] } ] }
+
+  - id: subutai
+    name: "Subutai"
+    title: "Hound of the Steppe"
+    origin: "Mongol Empire, c. 1175-1248"
+    rarity: legendary
+    trees: [cavalry, mobility, skirmish]
+    skills:
+      - { id: subutai_1, name: "Feigned Flight", kind: active,
+          text: "Deals damage (potency {1}) and raises own damage by {2}% for 4 s.",
+          effects: [ { type: damage, potency: [700, 850, 1000, 1150, 1400] },
+                     { type: buff, mods: { damage_dealt_pct: [5, 7, 9, 11, 15] }, ticks: 4 } ] }
+      - { id: subutai_2, name: "Riders Without Rest", kind: passive,
+          text: "Cavalry attack +{1}%, march speed +{2}%.",
+          effects: [ { type: mods, when: always, mods: { cavalry_attack_pct: [10, 13, 16, 19, 25], march_speed_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: subutai_3, name: "Ring of Hooves", kind: passive,
+          text: "In the open field: damage dealt +{1}%.",
+          effects: [ { type: mods, when: field, mods: { damage_dealt_pct: [3, 4, 5, 6, 8] } } ] }
+      - { id: subutai_4, name: "Second Wind", kind: passive, trigger: { on_active: true },
+          text: "After the active skill, gains {1} rage.",
+          effects: [ { type: rage, amount: [50, 60, 70, 80, 100] } ] }
+
+  - id: zhuge_liang
+    name: "Zhuge Liang"
+    title: "The Sleeping Dragon"
+    origin: "Shu Han, 181-234"
+    rarity: legendary
+    trees: [archer, support, skirmish]
+    skills:
+      - { id: zhuge_liang_1, name: "Arrows from the Fog", kind: active,
+          text: "Hits up to 2 enemies (potency {1}) and silences the target for {2} s.",
+          effects: [ { type: damage, potency: [650, 780, 910, 1040, 1300], targets: 2 },
+                     { type: silence, ticks: [1, 1, 2, 2, 3] } ] }
+      - { id: zhuge_liang_2, name: "Repeating Crossbows", kind: passive,
+          text: "Archer attack +{1}%, archer defense +{2}%.",
+          effects: [ { type: mods, when: always, mods: { archer_attack_pct: [10, 13, 16, 19, 25], archer_defense_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: zhuge_liang_3, name: "Stone Sentinel Maze", kind: passive,
+          text: "Skill damage +{1}%, rage gain +{2}%.",
+          effects: [ { type: mods, when: always, mods: { skill_damage_pct: [5, 7, 9, 11, 15], rage_gain_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: zhuge_liang_4, name: "Unsettling Calm", kind: passive, trigger: { every_n_attacks: 8 },
+          text: "Every 8th attack drains {1} rage from the target.",
+          effects: [ { type: rage_drain, amount: [50, 60, 70, 80, 100] } ] }
+
+  - id: leonidas
+    name: "Leonidas I"
+    title: "Warden of the Hot Gates"
+    origin: "Sparta, d. 480 BC"
+    rarity: legendary
+    trees: [infantry, garrison, skirmish]
+    skills:
+      - { id: leonidas_1, name: "Bar the Way", kind: active,
+          text: "Deals damage (potency {1}) and takes {2}% less damage for 4 s.",
+          effects: [ { type: damage, potency: [500, 600, 700, 800, 1000] },
+                     { type: buff, mods: { damage_taken_pct: [-10, -13, -16, -19, -25] }, ticks: 4 } ] }
+      - { id: leonidas_2, name: "The Few", kind: passive,
+          text: "Below 50% troops: attack +{1}%.",
+          effects: [ { type: mods, when: troops_below_50, mods: { attack_pct: [8, 11, 14, 17, 20] } } ] }
+      - { id: leonidas_3, name: "Bronze Hedge", kind: passive,
+          text: "Infantry defense +{1}%, infantry health +{2}%.",
+          effects: [ { type: mods, when: always, mods: { infantry_defense_pct: [10, 13, 16, 19, 25], infantry_health_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: leonidas_4, name: "Come and Take Them", kind: passive,
+          text: "As a garrison: counterattack damage +{1}%.",
+          effects: [ { type: mods, when: garrison, mods: { counter_damage_pct: [10, 13, 16, 19, 25] } } ] }
+
+  - id: shaka
+    name: "Shaka"
+    title: "The Bull Elephant"
+    origin: "Zulu Kingdom, c. 1787-1828"
+    rarity: legendary
+    trees: [infantry, mobility, conquest]
+    skills:
+      - { id: shaka_1, name: "Horns and Chest", kind: active,
+          text: "Deals damage (potency {1}) and slows the target by {2}% for 5 s.",
+          effects: [ { type: damage, potency: [750, 900, 1050, 1200, 1450] },
+                     { type: debuff, mods: { march_speed_pct: [-10, -15, -20, -25, -30] }, ticks: 5 } ] }
+      - { id: shaka_2, name: "Short Spear", kind: passive,
+          text: "Infantry attack +{1}%, normal attack damage +{2}%.",
+          effects: [ { type: mods, when: always, mods: { infantry_attack_pct: [10, 13, 16, 19, 25], normal_damage_pct: [3, 4, 5, 6, 8] } } ] }
+      - { id: shaka_3, name: "Hardened Soles", kind: passive,
+          text: "Leading only infantry: march speed +{1}%.",
+          effects: [ { type: mods, when: only_infantry, mods: { march_speed_pct: [10, 12, 14, 16, 20] } } ] }
+      - { id: shaka_4, name: "Reserve Regiment", kind: passive, trigger: { troops_below_pct: 50 },
+          text: "Once per battle, below 50% troops: heals lightly wounded (potency {1}).",
+          effects: [ { type: heal, potency: [400, 500, 600, 700, 900] } ] }
+
+  - id: amina
+    name: "Amina of Zazzau"
+    title: "The Wall Builder"
+    origin: "Zazzau, 16th century"
+    rarity: legendary
+    trees: [leadership, conquest, cavalry]
+    skills:
+      - { id: amina_1, name: "Storm the Earthworks", kind: active,
+          text: "Deals damage (potency {1}) and raises attack by {2}% for 4 s.",
+          effects: [ { type: damage, potency: [600, 720, 840, 960, 1150] },
+                     { type: buff, mods: { attack_pct: [5, 7, 9, 11, 15] }, ticks: 4 } ] }
+      - { id: amina_2, name: "Queen's Muster", kind: passive,
+          text: "Rally capacity +{1}%. Attacking cities and structures: attack +{2}%.",
+          effects: [ { type: mods, when: always, mods: { rally_capacity_pct: [4, 5, 6, 8, 10] } },
+                     { type: mods, when: attacking_structure, mods: { attack_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: amina_3, name: "Tribute Roads", kind: passive,
+          text: "Troop load +{1}%, damage to structures +{2}%.",
+          effects: [ { type: mods, when: always, mods: { troop_load_pct: [10, 15, 20, 25, 30], structure_damage_pct: [10, 15, 20, 25, 30] } } ] }
+      - { id: amina_4, name: "A Lifetime at War", kind: passive, trigger: { on_battle_start: true },
+          text: "Starts each battle with {1} rage.",
+          effects: [ { type: rage, amount: [100, 150, 200, 250, 300] } ] }
+
+  - id: vauban
+    name: "Sebastien de Vauban"
+    title: "Master of Sieges"
+    origin: "France, 1633-1707"
+    rarity: legendary
+    trees: [siege, garrison, support]
+    skills:
+      - { id: vauban_1, name: "Parallel Trenches", kind: active,
+          text: "Hits up to 2 enemies (potency {1}) and lowers the target's defense by {2}% for 3 s.",
+          effects: [ { type: damage, potency: [550, 660, 770, 880, 1100], targets: 2 },
+                     { type: debuff, mods: { defense_pct: [-6, -8, -10, -12, -15] }, ticks: 3 } ] }
+      - { id: vauban_2, name: "Star Bastion", kind: passive,
+          text: "As a garrison: defense +{1}%, skill damage taken -{2}%.",
+          effects: [ { type: mods, when: garrison, mods: { defense_pct: [8, 11, 14, 17, 20], skill_damage_taken_pct: [-5, -7, -9, -11, -15] } } ] }
+      - { id: vauban_3, name: "Siege Train", kind: passive,
+          text: "Siege attack +{1}%, siege health +{2}%.",
+          effects: [ { type: mods, when: always, mods: { siege_attack_pct: [15, 20, 25, 30, 35], siege_health_pct: [10, 13, 16, 19, 25] } } ] }
+      - { id: vauban_4, name: "Engineer's Eye", kind: passive,
+          text: "Damage to structures +{1}%.",
+          effects: [ { type: mods, when: always, mods: { structure_damage_pct: [15, 20, 25, 30, 40] } } ] }
+
+  # ------------------------------------------------------------- RENOWNED
+  - id: tomoe_gozen
+    name: "Tomoe Gozen"
+    title: "Rider of Awazu"
+    origin: "Japan, late 12th century"
+    rarity: renowned
+    trees: [cavalry, skirmish, support]
+    skills:
+      - { id: tomoe_gozen_1, name: "Single Stroke", kind: active,
+          text: "Deals damage (potency {1}).",
+          effects: [ { type: damage, potency: [500, 600, 700, 800, 1000] } ] }
+      - { id: tomoe_gozen_2, name: "Untamed Mount", kind: passive,
+          text: "Cavalry attack +{1}%.",
+          effects: [ { type: mods, when: always, mods: { cavalry_attack_pct: [6, 8, 10, 12, 15] } } ] }
+      - { id: tomoe_gozen_3, name: "Answering Blade", kind: passive,
+          text: "In the open field: counterattack damage +{1}%.",
+          effects: [ { type: mods, when: field, mods: { counter_damage_pct: [5, 7, 9, 11, 15] } } ] }
+      - { id: tomoe_gozen_4, name: "Worth a Thousand", kind: passive, trigger: { every_n_attacks: 5 },
+          text: "Every 5th attack deals extra damage (potency {1}).",
+          effects: [ { type: damage, potency: [150, 180, 210, 250, 300] } ] }
+
+  - id: khutulun
+    name: "Khutulun"
+    title: "The Unthrown"
+    origin: "Chagatai Khanate, c. 1260-1306"
+    rarity: renowned
+    trees: [cavalry, mobility, peacekeeping]
+    skills:
+      - { id: khutulun_1, name: "Wrestler's Grip", kind: active,
+          text: "Deals damage (potency {1}) and drains {2} rage from the target.",
+          effects: [ { type: damage, potency: [450, 550, 650, 750, 900] },
+                     { type: rage_drain, amount: [30, 40, 50, 65, 80] } ] }
+      - { id: khutulun_2, name: "Ten Thousand Horses", kind: passive,
+          text: "March speed +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_speed_pct: [6, 8, 10, 12, 15] } } ] }
+      - { id: khutulun_3, name: "Hawk Among Sparrows", kind: passive,
+          text: "Damage to barbarians +{1}%.",
+          effects: [ { type: mods, when: vs_pve, mods: { barbarian_damage_pct: [10, 15, 20, 25, 30] } } ] }
+      - { id: khutulun_4, name: "Steppe-Born", kind: passive,
+          text: "Cavalry health +{1}%.",
+          effects: [ { type: mods, when: always, mods: { cavalry_health_pct: [6, 8, 10, 12, 15] } } ] }
+
+  - id: jan_zizka
+    name: "Jan Zizka"
+    title: "The One-Eyed Hetman"
+    origin: "Bohemia, c. 1360-1424"
+    rarity: renowned
+    trees: [infantry, garrison, leadership]
+    skills:
+      - { id: jan_zizka_1, name: "Wagon Ring", kind: active,
+          text: "Deals damage (potency {1}) and takes {2}% less damage for 5 s.",
+          effects: [ { type: damage, potency: [300, 375, 450, 525, 600] },
+                     { type: buff, mods: { damage_taken_pct: [-15, -18, -21, -25, -30] }, ticks: 5 } ] }
+      - { id: jan_zizka_2, name: "Flails and Pavises", kind: passive,
+          text: "Infantry defense +{1}%.",
+          effects: [ { type: mods, when: always, mods: { infantry_defense_pct: [6, 8, 10, 12, 15] } } ] }
+      - { id: jan_zizka_3, name: "Hilltop Laager", kind: passive,
+          text: "As a garrison: attack +{1}%.",
+          effects: [ { type: mods, when: garrison, mods: { attack_pct: [5, 6, 8, 10, 12] } } ] }
+      - { id: jan_zizka_4, name: "Never Routed", kind: passive,
+          text: "Below 50% troops: defense +{1}%.",
+          effects: [ { type: mods, when: troops_below_50, mods: { defense_pct: [8, 11, 14, 17, 20] } } ] }
+
+  - id: artemisia
+    name: "Artemisia I of Caria"
+    title: "Admiral of Halicarnassus"
+    origin: "Caria, 5th century BC"
+    rarity: renowned
+    trees: [archer, skirmish, mobility]
+    skills:
+      - { id: artemisia_1, name: "Bronze Prow", kind: active,
+          text: "Deals damage (potency {1}).",
+          effects: [ { type: damage, potency: [500, 600, 700, 800, 1000] } ] }
+      - { id: artemisia_2, name: "Deck Archers", kind: passive,
+          text: "Archer attack +{1}%.",
+          effects: [ { type: mods, when: always, mods: { archer_attack_pct: [6, 8, 10, 12, 15] } } ] }
+      - { id: artemisia_3, name: "Fair Wind", kind: passive,
+          text: "March speed +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_speed_pct: [5, 6, 8, 10, 12] } } ] }
+      - { id: artemisia_4, name: "Cold Counsel", kind: passive, trigger: { on_active: true },
+          text: "After the active skill: normal attack damage +{1}% for 3 s.",
+          effects: [ { type: buff, mods: { normal_damage_pct: [10, 13, 16, 20, 25] }, ticks: 3 } ] }
+
+  - id: lapu_lapu
+    name: "Lapulapu"
+    title: "Chief of Mactan"
+    origin: "Mactan, 16th century"
+    rarity: renowned
+    trees: [infantry, peacekeeping, skirmish]
+    skills:
+      - { id: lapu_lapu_1, name: "Fight in the Shallows", kind: active,
+          text: "Deals damage (potency {1}) and lowers the target's attack by {2}% for 3 s.",
+          effects: [ { type: damage, potency: [450, 550, 650, 750, 900] },
+                     { type: debuff, mods: { attack_pct: [-5, -7, -9, -12, -15] }, ticks: 3 } ] }
+      - { id: lapu_lapu_2, name: "Island Wardens", kind: passive,
+          text: "Damage to barbarians +{1}%.",
+          effects: [ { type: mods, when: vs_pve, mods: { barbarian_damage_pct: [10, 15, 20, 25, 30] } } ] }
+      - { id: lapu_lapu_3, name: "Fire-Hardened Shields", kind: passive,
+          text: "Infantry health +{1}%.",
+          effects: [ { type: mods, when: always, mods: { infantry_health_pct: [6, 8, 10, 12, 15] } } ] }
+      - { id: lapu_lapu_4, name: "Lessons of the Tide", kind: passive,
+          text: "Commander experience +{1}%.",
+          effects: [ { type: mods, when: always, mods: { commander_xp_pct: [5, 7, 9, 12, 15] } } ] }
+
+  - id: nzinga
+    name: "Nzinga Mbande"
+    title: "Queen of Ndongo and Matamba"
+    origin: "Ndongo, c. 1583-1663"
+    rarity: renowned
+    trees: [leadership, support, archer]
+    skills:
+      - { id: nzinga_1, name: "Parley and Regroup", kind: active,
+          text: "Heals lightly wounded troops (potency {1}) and raises defense by {2}% for 4 s.",
+          effects: [ { type: heal, potency: [300, 400, 500, 600, 700] },
+                     { type: buff, mods: { defense_pct: [5, 7, 9, 12, 15] }, ticks: 4 } ] }
+      - { id: nzinga_2, name: "Shifting Alliances", kind: passive,
+          text: "With 3 or more troop types: health +{1}%.",
+          effects: [ { type: mods, when: mixed, mods: { health_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: nzinga_3, name: "Royal Physicians", kind: passive,
+          text: "Healing +{1}%, rage gain +{2}%.",
+          effects: [ { type: mods, when: always, mods: { heal_potency_pct: [10, 15, 20, 25, 30], rage_gain_pct: [3, 4, 5, 6, 8] } } ] }
+      - { id: nzinga_4, name: "Forty Years Unconquered", kind: passive,
+          text: "Troop capacity +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_capacity_pct: [3, 4, 5, 6, 8] } } ] }
+
+  - id: archimedes
+    name: "Archimedes"
+    title: "Defender of Syracuse"
+    origin: "Syracuse, c. 287-212 BC"
+    rarity: renowned
+    trees: [siege, garrison, support]
+    skills:
+      - { id: archimedes_1, name: "Focused Sun", kind: active,
+          text: "Burns up to 2 enemies for 4 s (potency {1} per second).",
+          effects: [ { type: dot, potency: [150, 180, 210, 250, 300], ticks: 4, targets: 2 } ] }
+      - { id: archimedes_2, name: "Levers and Pulleys", kind: passive,
+          text: "Siege attack +{1}%.",
+          effects: [ { type: mods, when: always, mods: { siege_attack_pct: [8, 11, 14, 17, 20] } } ] }
+      - { id: archimedes_3, name: "Engines on the Walls", kind: passive,
+          text: "As a garrison: skill damage +{1}%.",
+          effects: [ { type: mods, when: garrison, mods: { skill_damage_pct: [8, 11, 14, 17, 20] } } ] }
+      - { id: archimedes_4, name: "The Iron Claw", kind: passive, trigger: { every_n_attacks: 6 },
+          text: "Every 6th attack deals extra damage (potency {1}).",
+          effects: [ { type: damage, potency: [150, 180, 210, 250, 300] } ] }
+
+  # ------------------------------------------------------------- VETERAN
+  - id: spartacus
+    name: "Spartacus"
+    title: "Breaker of Chains"
+    origin: "Thrace, d. 71 BC"
+    rarity: veteran
+    trees: [infantry, peacekeeping, skirmish]
+    skills:
+      - { id: spartacus_1, name: "Arena Fury", kind: active,
+          text: "Deals damage (potency {1}).",
+          effects: [ { type: damage, potency: [300, 375, 450, 525, 650] } ] }
+      - { id: spartacus_2, name: "Gladiator Drill", kind: passive,
+          text: "Infantry attack +{1}%.",
+          effects: [ { type: mods, when: always, mods: { infantry_attack_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: spartacus_3, name: "Raid the Estates", kind: passive,
+          text: "Damage to barbarians +{1}%.",
+          effects: [ { type: mods, when: vs_pve, mods: { barbarian_damage_pct: [8, 11, 14, 17, 20] } } ] }
+      - { id: spartacus_4, name: "Nothing to Lose", kind: passive,
+          text: "Below 50% troops: attack +{1}%.",
+          effects: [ { type: mods, when: troops_below_50, mods: { attack_pct: [5, 6, 8, 10, 12] } } ] }
+
+  - id: tamar
+    name: "Tamar of Georgia"
+    title: "King of Kings"
+    origin: "Georgia, c. 1160-1213"
+    rarity: veteran
+    trees: [cavalry, garrison, leadership]
+    skills:
+      - { id: tamar_1, name: "Golden Age Charge", kind: active,
+          text: "Deals damage (potency {1}) and raises defense by {2}% for 3 s.",
+          effects: [ { type: damage, potency: [280, 350, 420, 500, 600] },
+                     { type: buff, mods: { defense_pct: [4, 5, 6, 8, 10] }, ticks: 3 } ] }
+      - { id: tamar_2, name: "Mailed Riders", kind: passive,
+          text: "Cavalry defense +{1}%.",
+          effects: [ { type: mods, when: always, mods: { cavalry_defense_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: tamar_3, name: "Mountain Keeps", kind: passive,
+          text: "As a garrison: health +{1}%.",
+          effects: [ { type: mods, when: garrison, mods: { health_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: tamar_4, name: "Crown's Levy", kind: passive,
+          text: "Troop capacity +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_capacity_pct: [2, 2.5, 3, 4, 5] } } ] }
+
+  - id: yue_fei
+    name: "Yue Fei"
+    title: "The Loyal General"
+    origin: "Song dynasty, 1103-1142"
+    rarity: veteran
+    trees: [archer, peacekeeping, support]
+    skills:
+      - { id: yue_fei_1, name: "Massed Volley", kind: active,
+          text: "Deals damage (potency {1}).",
+          effects: [ { type: damage, potency: [320, 400, 480, 560, 680] } ] }
+      - { id: yue_fei_2, name: "Strong Bows", kind: passive,
+          text: "Archer attack +{1}%.",
+          effects: [ { type: mods, when: always, mods: { archer_attack_pct: [4, 5, 6, 8, 10] } } ] }
+      - { id: yue_fei_3, name: "Clear the Borderlands", kind: passive,
+          text: "Damage to barbarians +{1}%.",
+          effects: [ { type: mods, when: vs_pve, mods: { barbarian_damage_pct: [8, 11, 14, 17, 20] } } ] }
+      - { id: yue_fei_4, name: "Iron Discipline", kind: passive,
+          text: "Rage gain +{1}%.",
+          effects: [ { type: mods, when: always, mods: { rage_gain_pct: [3, 4, 5, 6, 8] } } ] }
+
+  - id: hatshepsut
+    name: "Hatshepsut"
+    title: "Foremost of Noble Ladies"
+    origin: "Egypt, c. 1507-1458 BC"
+    rarity: veteran
+    trees: [gathering, support, leadership]
+    skills:
+      - { id: hatshepsut_1, name: "Expedition Stores", kind: active,
+          text: "Heals lightly wounded troops (potency {1}).",
+          effects: [ { type: heal, potency: [200, 260, 320, 380, 450] } ] }
+      - { id: hatshepsut_2, name: "Voyage to Punt", kind: passive,
+          text: "Gathering speed +{1}%.",
+          effects: [ { type: mods, when: gathering, mods: { gather_speed_pct: [10, 15, 20, 25, 30] } } ] }
+      - { id: hatshepsut_3, name: "Laden Barges", kind: passive,
+          text: "Troop load +{1}%.",
+          effects: [ { type: mods, when: always, mods: { troop_load_pct: [10, 15, 20, 25, 30] } } ] }
+      - { id: hatshepsut_4, name: "Guarded Caravans", kind: passive,
+          text: "While gathering: damage taken -{1}%.",
+          effects: [ { type: mods, when: gathering, mods: { damage_taken_pct: [-10, -15, -20, -25, -30] } } ] }
+
+  - id: zheng_he
+    name: "Zheng He"
+    title: "Admiral of the Treasure Fleet"
+    origin: "Ming dynasty, 1371-1433"
+    rarity: veteran
+    trees: [gathering, mobility, leadership]
+    skills:
+      - { id: zheng_he_1, name: "Fleet Signal", kind: active,
+          text: "Deals damage (potency {1}) and raises march speed by {2}% for 10 s.",
+          effects: [ { type: damage, potency: [250, 320, 390, 460, 550] },
+                     { type: buff, mods: { march_speed_pct: [10, 15, 20, 25, 30] }, ticks: 10 } ] }
+      - { id: zheng_he_2, name: "Seven Voyages", kind: passive,
+          text: "Gathering speed +{1}%.",
+          effects: [ { type: mods, when: gathering, mods: { gather_speed_pct: [8, 12, 16, 20, 25] } } ] }
+      - { id: zheng_he_3, name: "Star Charts", kind: passive,
+          text: "March speed +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_speed_pct: [5, 6, 8, 10, 12] } } ] }
+      - { id: zheng_he_4, name: "Treasure Holds", kind: passive,
+          text: "Troop load +{1}%.",
+          effects: [ { type: mods, when: always, mods: { troop_load_pct: [8, 12, 16, 20, 25] } } ] }
+
+  - id: ibn_battuta
+    name: "Ibn Battuta"
+    title: "Traveller of the Age"
+    origin: "Marinid Morocco, 1304-c. 1369"
+    rarity: veteran
+    trees: [gathering, mobility, peacekeeping]
+    skills:
+      - { id: ibn_battuta_1, name: "Well-Travelled Roads", kind: active,
+          text: "Deals damage (potency {1}) and raises march speed by {2}% for 10 s.",
+          effects: [ { type: damage, potency: [200, 260, 320, 380, 450] },
+                     { type: buff, mods: { march_speed_pct: [20, 25, 30, 40, 50] }, ticks: 10 } ] }
+      - { id: ibn_battuta_2, name: "Caravan Companions", kind: passive,
+          text: "Gathering speed +{1}%.",
+          effects: [ { type: mods, when: gathering, mods: { gather_speed_pct: [8, 12, 16, 20, 25] } } ] }
+      - { id: ibn_battuta_3, name: "A Road to Everywhere", kind: passive,
+          text: "March speed +{1}%.",
+          effects: [ { type: mods, when: always, mods: { march_speed_pct: [5, 6, 8, 10, 12] } } ] }
+      - { id: ibn_battuta_4, name: "Travel Journals", kind: passive,
+          text: "Commander experience +{1}%.",
+          effects: [ { type: mods, when: always, mods: { commander_xp_pct: [5, 7, 9, 12, 15] } } ] }

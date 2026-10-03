@@ -1,0 +1,197 @@
+# Account progression constants. Specs: docs/design/08-events-and-progression.md, 04-commanders.md, 01-city-economy.md.
+progression:
+  builders: 2
+  free_finish_s: 180
+  cancel_refund_pct: 50
+
+  commanders:
+    max_level: 50
+    star_level_caps: [10, 20, 30, 40, 50]            # index = stars - 1
+    # xp_to_next[L-1] = round_to_10(40 * L^2.4) for L = 1..49 (checked by tools/check_consistency.py)
+    xp_to_next: [40, 210, 560, 1110, 1900, 2950, 4270, 5880, 7800, 10050,
+                 12630, 15560, 18860, 22530, 26590, 31040, 35900, 41180, 46890, 53030,
+                 59620, 66660, 74170, 82140, 90600, 99540, 108980, 118920, 129360, 140330,
+                 151820, 163840, 176400, 189500, 203150, 217360, 232140, 247480, 263400, 279900,
+                 296990, 314670, 332950, 351840, 371340, 391450, 412190, 433550, 455540]
+    unlock_sculptures: 10
+    star_up_sculptures: [10, 20, 40, 80]              # 1->2, 2->3, 3->4, 4->5
+    skill_upgrade_sculptures: [5, 10, 15, 20]         # skill level 1->2 ... 4->5
+    daily_pick: { veteran: 4, renowned: 2, legendary: 1 }
+    daily_pick_min_hall_level: { veteran: 1, renowned: 8, legendary: 16 }
+    secondary_min_stars: 3
+    talent_free_reset_interval_s: 604800
+    starter_choices: [spartacus, tamar, yue_fei]
+
+  renown:
+    max_level: 15
+    daily_points_cap: 100
+    # points = cumulative Renown points needed; modifiers = totals at that level (not increments)
+    levels:
+      - { level: 1, points: 100, modifiers: { build_speed_pct: 1, research_speed_pct: 1, gather_speed_pct: 1 }, rewards: { speedup_build_60m: 1 } }
+      - { level: 2, points: 300, modifiers: { build_speed_pct: 2, research_speed_pct: 2, gather_speed_pct: 2, free_finish_flat: 30 }, rewards: { speedup_build_60m: 1 } }
+      - { level: 3, points: 600, modifiers: { build_speed_pct: 3, research_speed_pct: 3, gather_speed_pct: 3, free_finish_flat: 60 }, rewards: { speedup_build_60m: 1 } }
+      - { level: 4, points: 1000, modifiers: { build_speed_pct: 4, research_speed_pct: 4, gather_speed_pct: 4, free_finish_flat: 90 }, rewards: { speedup_build_60m: 1 } }
+      - { level: 5, points: 1500, modifiers: { build_speed_pct: 5, research_speed_pct: 5, gather_speed_pct: 5, free_finish_flat: 120 }, rewards: { speedup_build_60m: 1, sculpture_universal_legendary: 1 } }
+      - { level: 6, points: 2100, modifiers: { build_speed_pct: 6, research_speed_pct: 6, gather_speed_pct: 6, free_finish_flat: 150 }, rewards: { speedup_build_60m: 1, speedup_research_60m: 1, sculpture_universal_legendary: 1 } }
+      - { level: 7, points: 2800, modifiers: { build_speed_pct: 7, research_speed_pct: 7, gather_speed_pct: 7, free_finish_flat: 180 }, rewards: { speedup_build_60m: 1, speedup_research_60m: 1, sculpture_universal_legendary: 1 } }
+      - { level: 8, points: 3600, modifiers: { build_speed_pct: 8, research_speed_pct: 8, gather_speed_pct: 8, free_finish_flat: 210 }, rewards: { speedup_build_60m: 1, speedup_research_60m: 1, sculpture_universal_legendary: 1 } }
+      - { level: 9, points: 4500, modifiers: { build_speed_pct: 9, research_speed_pct: 9, gather_speed_pct: 9, free_finish_flat: 240 }, rewards: { speedup_build_60m: 1, speedup_research_60m: 1, sculpture_universal_legendary: 1 } }
+      - { level: 10, points: 5500, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 270 }, rewards: { speedup_build_60m: 1, speedup_research_60m: 1, sculpture_universal_legendary: 2 } }
+      - { level: 11, points: 6600, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 300, train_speed_pct: 2, stamina_cap_flat: 20 }, rewards: { speedup_build_60m: 2, speedup_research_60m: 1, sculpture_universal_legendary: 2 } }
+      - { level: 12, points: 7800, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 330, train_speed_pct: 4, stamina_cap_flat: 40 }, rewards: { speedup_build_60m: 2, speedup_research_60m: 1, sculpture_universal_legendary: 2 } }
+      - { level: 13, points: 9100, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 360, train_speed_pct: 6, stamina_cap_flat: 60 }, rewards: { speedup_build_60m: 2, speedup_research_60m: 1, sculpture_universal_legendary: 2 } }
+      - { level: 14, points: 10500, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 390, train_speed_pct: 8, stamina_cap_flat: 80 }, rewards: { speedup_build_60m: 2, speedup_research_60m: 1, sculpture_universal_legendary: 2 } }
+      - { level: 15, points: 12000, modifiers: { build_speed_pct: 10, research_speed_pct: 10, gather_speed_pct: 10, free_finish_flat: 420, train_speed_pct: 10, stamina_cap_flat: 100 }, rewards: { speedup_build_60m: 2, speedup_research_60m: 1, sculpture_universal_legendary: 3 } }
+
+  daily_objectives:
+    activity_cap: 100
+    tasks:                          # counters reset at 00:00 UTC
+      - { id: login, counter: login, target: 1, activity: 10 }
+      - { id: collect, counter: collect_resources, target: 3, activity: 5 }
+      - { id: build, counter: start_build, target: 2, activity: 10 }
+      - { id: research, counter: start_research, target: 1, activity: 10 }
+      - { id: train, counter: start_training, target: 1, activity: 10 }
+      - { id: barbarians, counter: defeat_barbarian, target: 5, activity: 15 }
+      - { id: gather, counter: complete_gather_march, target: 3, activity: 15 }
+      - { id: help, counter: alliance_help, target: 10, activity: 10 }
+      - { id: donate, counter: alliance_donate, target: 5, activity: 10 }
+      - { id: speedup, counter: use_speedup, target: 5, activity: 5 }
+      - { id: heal, counter: start_healing, target: 1, activity: 5 }
+      - { id: scout, counter: scout_or_explore, target: 1, activity: 5 }
+      - { id: rally, counter: join_or_start_rally, target: 1, activity: 10 }
+      - { id: heroes, counter: claim_daily_sculptures, target: 1, activity: 5 }
+    chests:
+      - { activity: 20, rewards: { speedup_build_5m: 3, resource_food_10k: 2, resource_wood_10k: 2 } }
+      - { activity: 40, rewards: { speedup_research_5m: 3, speedup_train_5m: 3, xp_tome_1k: 3 } }
+      - { activity: 60, rewards: { speedup_build_5m: 3, stamina_50: 1, xp_tome_1k: 5 } }
+      - { activity: 80, rewards: { speedup_research_5m: 3, speedup_train_5m: 3, speedup_universal_5m: 1 } }
+      - { activity: 100, rewards: { speedup_build_5m: 6, speedup_universal_5m: 2, sculpture_universal_renowned: 2 } }
+
+  # Chapter n is active when chapters 1..n-1 are claimed. Each objective pays `objective_reward` once.
+  # completion_reward.city_hall_cost_of_level: grants resources equal to that City Hall level's full cost.
+  chapters:
+    - id: 1
+      name: "First Stones"
+      objectives:
+        - { kind: building_level, building: farm, level: 2 }
+        - { kind: building_level, building: lumber_mill, level: 2 }
+        - { kind: train_troops, count: 50 }
+        - { kind: building_level, building: city_hall, level: 2 }
+      objective_reward: { speedup_build_5m: 1 }
+      completion_reward: { city_hall_cost_of_level: 3, items: { speedup_build_5m: 2 } }
+    - id: 2
+      name: "Walls and Wards"
+      objectives:
+        - { kind: building_level, building: storehouse, level: 1 }
+        - { kind: building_level, building: scout_camp, level: 1 }
+        - { kind: building_level, building: hospital, level: 1 }
+        - { kind: explore_cells, count: 3 }
+        - { kind: building_level, building: wall, level: 2 }
+        - { kind: building_level, building: city_hall, level: 3 }
+      objective_reward: { speedup_build_5m: 1 }
+      completion_reward: { city_hall_cost_of_level: 4, items: { speedup_build_5m: 2 } }
+    - id: 3
+      name: "Scholars and Allies"
+      objectives:
+        - { kind: building_level, building: academy, level: 1 }
+        - { kind: research_levels, count: 1 }
+        - { kind: building_level, building: archery_range, level: 1 }
+        - { kind: building_level, building: alliance_hall, level: 1 }
+        - { kind: join_alliance }
+        - { kind: defeat_barbarians, min_level: 1, count: 1 }
+        - { kind: building_level, building: city_hall, level: 4 }
+      objective_reward: { speedup_build_5m: 1, speedup_research_5m: 1 }
+      completion_reward: { city_hall_cost_of_level: 5, items: { speedup_build_5m: 1, speedup_research_5m: 1 }, unlock_commander: hatshepsut }
+    - id: 4
+      name: "Heroes of the Hall"
+      objectives:
+        - { kind: building_level, building: quarry, level: 1 }
+        - { kind: building_level, building: hall_of_heroes, level: 1 }
+        - { kind: commander_level, level: 5 }
+        - { kind: gather_marches, count: 2 }
+        - { kind: defeat_barbarians, min_level: 3, count: 1 }
+        - { kind: building_level, building: city_hall, level: 5 }
+      objective_reward: { speedup_build_5m: 1, speedup_research_5m: 1 }
+      completion_reward: { city_hall_cost_of_level: 6, items: { speedup_build_5m: 2, speedup_research_5m: 2, sculpture_universal_veteran: 10 } }
+    - id: 5
+      name: "Hooves and Watchfires"
+      objectives:
+        - { kind: building_level, building: stable, level: 1 }
+        - { kind: building_level, building: watchtower, level: 1 }
+        - { kind: research_levels, count: 5 }
+        - { kind: alliance_helps, count: 10 }
+        - { kind: building_level, building: city_hall, level: 6 }
+      objective_reward: { speedup_build_5m: 1, speedup_research_5m: 1 }
+      completion_reward: { city_hall_cost_of_level: 7, items: { speedup_build_5m: 5, speedup_research_5m: 3, xp_tome_1k: 10 } }
+    - id: 6
+      name: "A Standing Army"
+      objectives:
+        - { kind: train_troops, count: 1000 }
+        - { kind: defeat_barbarians, min_level: 5, count: 1 }
+        - { kind: gather_marches, count: 5 }
+        - { kind: heal_troops, count: 100 }
+        - { kind: building_level, building: city_hall, level: 7 }
+      objective_reward: { xp_tome_1k: 2, stamina_50: 1 }
+      completion_reward: { city_hall_cost_of_level: 8, items: { xp_tome_10k: 1, sculpture_universal_veteran: 10 } }
+    - id: 7
+      name: "Engines of War"
+      objectives:
+        - { kind: building_level, building: siege_workshop, level: 1 }
+        - { kind: research_levels, count: 12 }
+        - { kind: commander_level, level: 10 }
+        - { kind: building_level, building: city_hall, level: 8 }
+      objective_reward: { xp_tome_1k: 3, resource_stone_10k: 1 }
+      completion_reward: { city_hall_cost_of_level: 9, items: { xp_tome_10k: 1, teleport_random: 1 } }
+    - id: 8
+      name: "The War Hall"
+      objectives:
+        - { kind: building_level, building: war_hall, level: 1 }
+        - { kind: defeat_barbarians, min_level: 8, count: 1 }
+        - { kind: explore_cells, count: 30 }
+        - { kind: building_level, building: city_hall, level: 9 }
+      objective_reward: { xp_tome_1k: 3, stamina_50: 1 }
+      completion_reward: { city_hall_cost_of_level: 10, items: { xp_tome_10k: 2, sculpture_universal_renowned: 5 } }
+    - id: 9
+      name: "Roads of Trade"
+      objectives:
+        - { kind: building_level, building: caravan_post, level: 1 }
+        - { kind: research_levels, count: 20 }
+        - { kind: commander_stars, stars: 2 }
+        - { kind: building_level, building: city_hall, level: 10 }
+      objective_reward: { xp_tome_1k: 5, resource_stone_10k: 2 }
+      completion_reward: { city_hall_cost_of_level: 11, items: { xp_tome_10k: 3, sculpture_universal_legendary: 5, shield_24h: 1 } }
+
+  events:
+    brackets:                       # threshold multiplier by City Hall level at event start
+      - { city_hall_max: 9, mult: 1 }
+      - { city_hall_max: 16, mult: 4 }
+      - { city_hall_max: 21, mult: 12 }
+      - { city_hall_max: 25, mult: 30 }
+    weekly:                         # start_weekday: 1 = Monday; all start/end at 00:00 UTC
+      - { id: muster, name: "The Muster", start_weekday: 1, days: 2, scoring: troop_power_trained, thresholds: [2000, 10000, 30000], bracketed: true }
+      - { id: hunt, name: "The Great Hunt", start_weekday: 3, days: 2, scoring: barbarian_levels_x10, thresholds: [300, 1000, 2500], bracketed: false }
+      - { id: harvest, name: "Harvest Day", start_weekday: 5, days: 1, scoring: gathered_load_div_1000, thresholds: [100, 400, 1000], bracketed: true }
+      - { id: works, name: "Great Works", start_weekday: 6, days: 2, scoring: building_research_power_gained, thresholds: [500, 2000, 6000], bracketed: true }
+    every_4th_week_replace: { replace: works, with: { id: clash, name: "The Clash", start_weekday: 6, days: 2, scoring: kill_points, thresholds: [2000, 10000, 40000], bracketed: true } }
+    threshold_rewards:              # same for every weekly event
+      - { speedup_build_5m: 3, speedup_research_5m: 2 }
+      - { speedup_build_5m: 3, speedup_research_5m: 1, sculpture_universal_renowned: 1 }
+      - { speedup_build_5m: 3, speedup_research_5m: 2, sculpture_universal_legendary: 1 }
+    rank_rewards:                   # per bracket leaderboard
+      - { rank_max: 1, rewards: { sculpture_universal_legendary: 5 }, badge: event_champion }
+      - { rank_max: 10, rewards: { sculpture_universal_legendary: 3 }, badge: event_top10 }
+      - { rank_max: 50, rewards: { sculpture_universal_legendary: 1 } }
+
+  first_capture_rewards:            # mailed to members active in the last 24 h (06 sections 8-9)
+    pass_1: { alliance_credits: 50 }
+    pass_2: { alliance_credits: 100 }
+    pass_3: { alliance_credits: 200 }
+    shrine: { alliance_credits: 100, items: { speedup_any_60m: 1 } }
+    sanctum: { alliance_credits: 200, items: { speedup_any_60m: 2 } }
+    great_sanctum: { alliance_credits: 300, items: { speedup_any_60m: 3 } }
+    throne: { alliance_credits: 500, items: { sculpture_universal_legendary: 2 } }
+
+  leaderboards:
+    refresh_s: 300
+    size: 100
+    boards: [power, city_hall, kill_points, barbarians_defeated, resources_gathered, alliance_power, alliance_kill_points]
