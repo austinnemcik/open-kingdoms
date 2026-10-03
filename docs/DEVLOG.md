@@ -130,3 +130,35 @@ ID, what changed, and anything the next run should know.
   (spec: milliseconds), cancel refunds the full cost (spec: 50 %), City Hall
   prerequisites and the production/storage model differ from 01. Reconcile
   these (change code or spec) before building further on them.
+
+## 2026-10-03 — P1-13 + P1-14: art style foundation, building tiers, city dressing
+
+- New art pipeline, all generated: `tools/blender/gen_textures.py` paints a shared
+  2048² atlas plus ground textures (system Python, numpy + Pillow);
+  `tools/blender/okkit.py` is the modelling kit (UV-mapped primitives, roofs,
+  towers, props, baked vertex AO); `build_buildings.py` now builds all 12
+  buildings in 5 tiers (`<kind>_t<tier>.glb`, old `<kind>.glb` removed);
+  `build_scenery.py` builds the city wall, terrain, forests and props into
+  `client/assets/models/scenery/`. `scripts/build_art.sh` regenerates everything.
+- `docs/ART_BIBLE.md` is the style guide: palette, scale, tiers, budgets, naming.
+  Read it before touching art.
+- Client: `BuildingFactory.create(kind, footprint, level)` picks the tier
+  (`tier_for_level`, falls back to lower tiers). Generated models carry no
+  materials; `apply_atlas` gives them the shared `assets/materials/atlas.tres`.
+- City dressing: `CityDressing` node (terrain with `ground.gdshader`, water,
+  wall, forests, props) and `CityRoads` (pure: avenues, plaza, door paths, road
+  mask, prop placement). Decoration only; the whole 40x40 grid stays buildable
+  and the server knows nothing about it.
+- `city.tscn` has new lighting/environment (warm sun, cool ambient, fog, glow);
+  `project.godot` gets a 4096 shadow map and soft shadow filtering.
+- `repo_consistency.rs` now requires all 5 tier models (+ `.import`) per building.
+- Fixtures: `showcase_city.json` (tiers 1–3) and `grand_city.json` (tiers 4–5).
+  Screenshots in `docs/screenshots/`.
+- Notes for the next run:
+  - `scripts/build_art.sh` takes well under a minute; when filling Blender meshes
+    from Python use `foreach_set`, per-loop access is quadratic in Blender 5.1.
+  - Texture `.import` files have `mipmaps/generate=true` set by hand; keep that
+    if a texture is ever re-imported from scratch.
+  - `screenshot.gd` accepts `[focus_x] [focus_z]` after the camera distance.
+  - Ideas not done: bridges where the gate roads meet the river, animated
+    flags/water wheel, tier-up construction scaffolding, LOD for the forest.

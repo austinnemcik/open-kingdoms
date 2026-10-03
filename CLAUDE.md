@@ -17,8 +17,8 @@ on its own.
 | `data/` | All balance numbers (YAML). Never hard-code balance in Rust or GDScript. |
 | `client/` | Godot 4.8 project, GDScript only. |
 | `client/tests/` | `unit/*_test.gd` (headless), `e2e_login.gd`, `screenshot.gd`. |
-| `tools/blender/` | Python scripts that generate all 3D models procedurally in Blender. |
-| `docs/` | `DESIGN.md` (game design), `ROADMAP.md` (task queue), `DEVLOG.md`. |
+| `tools/blender/` | Python scripts that generate all textures and 3D models procedurally (Blender + numpy/Pillow). |
+| `docs/` | `DESIGN.md` (game design), `ART_BIBLE.md` (visual style), `ROADMAP.md` (task queue), `DEVLOG.md`. |
 
 ## Tools on this machine
 
@@ -37,9 +37,8 @@ scripts/verify.sh server|client   # partial runs while iterating
 (cd server && cargo run -p kingdom-server)          # ws://127.0.0.1:7777/ws
 $GODOT --path client                                # client window
 
-# Regenerate 3D models (then re-import Godot so .import files update)
-"$BLENDER" -b --factory-startup -P tools/blender/build_buildings.py -- client/assets/models [kind ...]
-$GODOT --headless --path client --import
+# Regenerate art (textures, building tiers, scenery) and re-import Godot. See docs/ART_BIBLE.md.
+scripts/build_art.sh [all|textures|buildings|scenery] [kind[:tier] ... | wall|terrain|scatter|props ...]
 
 # Visual check: render a city fixture to PNG, then LOOK at it with the Read tool
 $GODOT --path client -s res://tests/screenshot.gd -- D:/rok-remake/docs/screenshots/city.png [fixture.json] [camera_distance]
@@ -58,9 +57,10 @@ $GODOT --path client -s res://tests/screenshot.gd -- D:/rok-remake/docs/screensh
    `client/scripts/net/protocol.gd`. Bump `PROTOCOL_VERSION` / `VERSION` on
    breaking changes (a consistency test enforces they match).
 5. **Every building/unit with a visual has a generated model.** Add a builder to
-   `tools/blender/build_buildings.py` (or a sibling script), export to
-   `client/assets/models/`, commit the `.glb` and its `.import`. A test checks
-   that every building in `data/buildings.yaml` has a model.
+   `tools/blender/build_buildings.py` (or a sibling script) for all 5 visual
+   tiers, export to `client/assets/models/<kind>_t<tier>.glb`, commit the `.glb`
+   and its `.import`. A test checks that every building in `data/buildings.yaml`
+   has every tier. Follow `docs/ART_BIBLE.md`.
 6. **No microtransactions, ever.** No premium currency, gacha, paid speedups,
    VIP-for-money, or ads. See `docs/DESIGN.md` for the economy philosophy.
 7. **Original assets and names only.** Do not copy Rise of Kingdoms art, text,
