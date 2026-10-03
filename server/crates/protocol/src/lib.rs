@@ -33,6 +33,12 @@ pub enum ClientMsg {
     UpgradeBuilding {
         building_id: u32,
     },
+    /// Construct a building in the authenticated owner's city.
+    BuildBuilding {
+        kind: String,
+        x: u32,
+        y: u32,
+    },
     /// Cancel an unfinished upgrade and refund its paid cost.
     CancelUpgrade {
         building_id: u32,
@@ -126,12 +132,13 @@ pub struct BuildingView {
     pub completes_at: Option<u64>,
 }
 
-/// Renderable building lifecycle (construction arrives in P1-06).
+/// Renderable building lifecycle; level zero is under construction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BuildingState {
     Ready,
     Upgrading,
+    UnderConstruction,
 }
 
 impl ClientMsg {
@@ -187,5 +194,26 @@ mod tests {
     #[test]
     fn unknown_type_is_rejected() {
         assert!(ClientMsg::from_json(r#"{"type":"nuke"}"#).is_err());
+    }
+    #[test]
+    fn construction_shapes_and_coordinate_bounds() {
+        assert_eq!(
+            ClientMsg::from_json(r#"{"type":"build_building","kind":"farm","x":0,"y":38}"#)
+                .unwrap(),
+            ClientMsg::BuildBuilding {
+                kind: "farm".into(),
+                x: 0,
+                y: 38
+            }
+        );
+        for value in ["-1", "4294967296", "1.5"] {
+            assert!(
+                ClientMsg::from_json(&format!(
+                    r#"{{"type":"build_building","kind":"farm","x":{value},"y":0}}"#
+                ))
+                .is_err()
+            );
+        }
+        assert!(ClientMsg::from_json(r#"{"type":"build_building","kind":"farm","x":0}"#).is_err());
     }
 }

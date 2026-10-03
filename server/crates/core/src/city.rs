@@ -43,6 +43,16 @@ pub enum CityError {
     TimeOverflow,
     #[error("building has no cancellable job")]
     NothingToCancel,
+    #[error("building footprint lies outside the city")]
+    OutOfBounds,
+    #[error("building footprint overlaps another building")]
+    Overlap,
+    #[error("maximum count for this building kind reached")]
+    CountLimit,
+    #[error("building requires a higher City Hall level")]
+    Locked,
+    #[error("building id space exhausted")]
+    IdExhausted,
 }
 
 /// A player's city.
@@ -151,6 +161,64 @@ impl City {
         self.resources = Resources::from_values(stored);
     }
 
+    /// Reserve a legal footprint, pay construction cost, and queue level one.
+    /// Pending buildings occupy tiles and count toward their kind's maximum.
+    pub fn build_building(
+        &mut self,
+        kind: &str,
+        x: u32,
+        y: u32,
+        now: u64,
+        data: &GameData,
+    ) -> Result<u32, CityError> {
+        self.collect(now, data);
+        let now = self.as_of.unwrap_or(now);
+        let def = data.building(kind).ok_or(CityError::UnknownBuilding)?;
+        if self.city_hall_level() < def.requires_city_hall {
+            return Err(CityError::Locked);
+        }
+        if self.buildings.iter().filter(|b| b.kind == kind).count() >= def.max_count as usize {
+            return Err(CityError::CountLimit);
+        }
+        let right = x
+            .checked_add(def.footprint)
+            .filter(|n| *n <= self.size)
+            .ok_or(CityError::OutOfBounds)?;
+        let bottom = y
+            .checked_add(def.footprint)
+            .filter(|n| *n <= self.size)
+            .ok_or(CityError::OutOfBounds)?;
+        for building in &self.buildings {
+            let other = data
+                .building(&building.kind)
+                .ok_or(CityError::UnknownBuilding)?;
+            if x < building.x.saturating_add(other.footprint)
+                && right > building.x
+                && y < building.y.saturating_add(other.footprint)
+                && bottom > building.y
+            {
+                return Err(CityError::Overlap);
+            }
+        }
+        let next_id = self
+            .next_building_id
+            .checked_add(1)
+            .ok_or(CityError::IdExhausted)?;
+        let (remaining, upgrade) = self.prepare_job(def, 1, now, data)?;
+        let id = self.next_building_id;
+        self.resources = remaining;
+        self.next_building_id = next_id;
+        self.buildings.push(Building {
+            id,
+            kind: kind.to_owned(),
+            level: 0,
+            x,
+            y,
+            upgrade: Some(upgrade),
+        });
+        Ok(id)
+    }
+
     /// Reserve a free builder and atomically pay the next-level cost.
     pub fn upgrade_building(
         &mut self,
@@ -251,6 +319,9 @@ impl City {
                 as u64
         }));
         self.resources = self.resources.saturating_add(refund);
+        if building.level == 0 {
+            self.buildings.retain(|b| b.id != building_id);
+        }
         Ok(())
     }
 
@@ -484,5 +555,137 @@ mod tests {
             city.buildings[0].upgrade.as_ref().unwrap().completes_at,
             320
         );
+    }
+    #[test]
+    fn new_buildings_reserve_tiles_and_produce_only_after_completion() {
+        let (data, mut city) = fixture();
+        let initial_rate = city.rates_per_hour(&data);
+        let id = city.build_building("farm", 0, 0, 100, &data).unwrap();
+        assert_eq!(city.resources.wood, 950);
+        let building = city.buildings.iter().find(|b| b.id == id).unwrap();
+        assert_eq!(building.level, 0);
+        assert_eq!(building.upgrade.as_ref().unwrap().completes_at, 145);
+        assert_eq!(city.rates_per_hour(&data), initial_rate);
+        assert_eq!(
+            city.build_building("lumber_mill", 1, 1, 100, &data),
+            Err(CityError::Overlap)
+        );
+        assert_eq!(city.upgrade_building(id, 100, &data), Err(CityError::Busy));
+        city.collect(144, &data);
+        assert_eq!(city.buildings.iter().find(|b| b.id == id).unwrap().level, 0);
+        city.collect(160, &data);
+        assert_eq!(city.buildings.iter().find(|b| b.id == id).unwrap().level, 1);
+        assert_eq!(city.resources.food, 1012);
+        assert_eq!(city.rates_per_hour(&data).food, 1200);
+    }
+    #[test]
+    fn construction_validates_kind_unlock_bounds_overlap_and_count() {
+        let (data, mut city) = fixture();
+        let before = city.clone();
+        assert_eq!(
+            city.build_building("unknown", 0, 0, 100, &data),
+            Err(CityError::UnknownBuilding)
+        );
+        assert_eq!(
+            city.build_building("quarry", 0, 0, 100, &data),
+            Err(CityError::Locked)
+        );
+        assert_eq!(
+            city.build_building("city_hall", 0, 0, 100, &data),
+            Err(CityError::CountLimit)
+        );
+        for (x, y) in [(39, 0), (0, 39), (u32::MAX, 0), (0, u32::MAX)] {
+            assert_eq!(
+                city.build_building("farm", x, y, 100, &data),
+                Err(CityError::OutOfBounds)
+            );
+        }
+        for (x, y) in [(18, 18), (17, 18), (21, 21)] {
+            assert_eq!(
+                city.build_building("farm", x, y, 100, &data),
+                Err(CityError::Overlap)
+            );
+        }
+        assert_eq!(city, before);
+        city.build_building("farm", 38, 38, 100, &data).unwrap();
+        city.build_building("farm", 36, 38, 100, &data).unwrap();
+        city.collect(145, &data);
+        city.build_building("farm", 34, 38, 145, &data).unwrap();
+        assert_eq!(
+            city.build_building("farm", 32, 38, 145, &data),
+            Err(CityError::CountLimit)
+        );
+    }
+    #[test]
+    fn construction_cost_builder_and_id_failures_are_atomic() {
+        let (data, mut city) = fixture();
+        city.resources.wood = 49;
+        let before = city.clone();
+        assert_eq!(
+            city.build_building("farm", 0, 0, 100, &data),
+            Err(CityError::InsufficientResources)
+        );
+        assert_eq!(city, before);
+        city.resources = data.start.resources;
+        city.upgrade_building(1, 100, &data).unwrap();
+        city.build_building("farm", 0, 0, 100, &data).unwrap();
+        let before = city.clone();
+        assert_eq!(
+            city.build_building("lumber_mill", 2, 0, 100, &data),
+            Err(CityError::BuildersBusy)
+        );
+        assert_eq!(city, before);
+        let (_, mut exhausted) = fixture();
+        exhausted.next_building_id = u32::MAX;
+        let before = exhausted.clone();
+        assert_eq!(
+            exhausted.build_building("farm", 0, 0, 100, &data),
+            Err(CityError::IdExhausted)
+        );
+        assert_eq!(exhausted, before);
+        let (_, mut future) = fixture();
+        future.collect(u64::MAX, &data);
+        let before = future.clone();
+        assert_eq!(
+            future.build_building("farm", 0, 0, u64::MAX, &data),
+            Err(CityError::TimeOverflow)
+        );
+        assert_eq!(future, before);
+    }
+    #[test]
+    fn cancellation_removes_pending_building_and_releases_footprint() {
+        let (data, mut city) = fixture();
+        let before = city.resources;
+        let id = city.build_building("farm", 0, 0, 100, &data).unwrap();
+        city.cancel_upgrade(id, 100, &data).unwrap();
+        assert_eq!(city.resources, before);
+        assert!(!city.buildings.iter().any(|b| b.id == id));
+        let replacement = city.build_building("farm", 0, 0, 100, &data).unwrap();
+        assert!(replacement > id);
+        assert_eq!(
+            city.cancel_upgrade(replacement, 145, &data),
+            Err(CityError::NothingToCancel)
+        );
+        assert_eq!(
+            city.buildings
+                .iter()
+                .find(|b| b.id == replacement)
+                .unwrap()
+                .level,
+            1
+        );
+    }
+    #[test]
+    fn construction_offline_and_frequent_collection_match() {
+        let (data, mut once) = fixture();
+        once.build_building("farm", 0, 0, 100, &data).unwrap();
+        once.build_building("lumber_mill", 2, 0, 105, &data)
+            .unwrap();
+        let mut frequent = once.clone();
+        once.collect(400, &data);
+        for now in 106..=400 {
+            frequent.collect(now, &data);
+        }
+        assert_eq!(once, frequent);
     }
 }
