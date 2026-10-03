@@ -1,9 +1,10 @@
 name: CI
 
+# PRs only (plus manual runs) to conserve Actions minutes; agents run
+# scripts/verify.sh locally before every push, which is the primary gate.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

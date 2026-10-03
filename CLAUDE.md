@@ -94,6 +94,8 @@ $GODOT --path client -s res://tests/screenshot.gd -- D:/rok-remake/docs/screensh
    DEVLOG entry (date, task, what changed, anything the next run should know).
 7. Commit, push, `gh pr create`, wait for CI (`gh pr checks --watch`), then
    `gh pr merge --squash --delete-branch`. If CI fails, fix and push again.
+   If CI cannot run at all (Actions minutes exhausted / billing error, not a
+   test failure), merge on a green local `scripts/verify.sh` and note it in DEVLOG.
 8. If truly blocked (missing tool, design question only the owner can answer),
    mark the task `- [!]` with a one-line reason, log it in DEVLOG, and move to the
    next task. Never merge red builds, never skip hooks, never force-push main.
