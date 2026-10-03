@@ -1,7 +1,7 @@
 extends SceneTree
 ## Render a city fixture with the real renderer and save a PNG, so agents can
 ## visually check scenes and models. Needs a GPU/window (not --headless).
-##   godot --path client -s res://tests/screenshot.gd -- <out.png> [fixture.json] [camera_distance]
+##   godot --path client -s res://tests/screenshot.gd -- <out.png> [fixture.json] [camera_distance] [focus_x] [focus_z]
 
 const DEFAULT_FIXTURE := "res://tests/fixtures/showcase_city.json"
 const WARMUP_FRAMES := 30
@@ -22,6 +22,8 @@ func _initialize() -> void:
 	if args.size() > 2:
 		var rig: CameraRig = view.get_node(^"CameraRig")
 		rig.distance = float(args[2])
+		if args.size() > 4:
+			rig.position = Vector3(float(args[3]), 0.0, float(args[4]))
 		rig._update_camera()
 
 

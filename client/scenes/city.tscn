@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/city/city_view.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/city/camera_rig.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/city/city_dressing.gd" id="3"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.38, 0.55, 0.8, 1)
@@ -14,9 +15,25 @@ sky_material = SubResource("sky_mat")
 [sub_resource type="Environment" id="env"]
 background_mode = 2
 sky = SubResource("sky")
-ambient_light_source = 3
+ambient_light_source = 2
+ambient_light_color = Color(0.68, 0.76, 0.95, 1)
+ambient_light_energy = 0.6
 tonemap_mode = 2
+tonemap_white = 1.6
 ssao_enabled = true
+ssao_radius = 1.2
+ssao_intensity = 1.6
+glow_enabled = true
+glow_intensity = 0.3
+glow_bloom = 0.04
+glow_hdr_threshold = 1.05
+fog_enabled = true
+fog_light_color = Color(0.74, 0.82, 0.92, 1)
+fog_density = 0.0011
+fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.12
 
 [node name="City" type="Node3D"]
 script = ExtResource("1")
@@ -25,12 +42,21 @@ script = ExtResource("1")
 environment = SubResource("env")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-50, 30, 0)
-light_energy = 1.2
+rotation_degrees = Vector3(-46, 28, 0)
+light_color = Color(1, 0.94, 0.82, 1)
+light_energy = 1.45
 shadow_enabled = true
+shadow_bias = 0.04
+shadow_normal_bias = 1.2
+shadow_blur = 1.4
+directional_shadow_mode = 1
+directional_shadow_max_distance = 130.0
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")
+
+[node name="Dressing" type="Node3D" parent="."]
+script = ExtResource("3")
 
 [node name="Buildings" type="Node3D" parent="."]
 
