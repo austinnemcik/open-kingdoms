@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+pub mod world;
+
 #[derive(Debug, thiserror::Error)]
 pub enum DataError {
     #[error("reading {path}: {source}")]
@@ -232,6 +234,8 @@ impl ServerLimits {
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub limits: ServerLimits,
+
+    pub world: world::WorldConfig,
     pub construction: ConstructionConfig,
     buildings: HashMap<String, BuildingDef>,
     pub start: StartConfig,
@@ -249,6 +253,8 @@ impl GameData {
         }
         let data = Self {
             limits: read_yaml(&dir.join("server.yaml"))?,
+
+            world: world::WorldConfig::load(dir.join("world.yaml"))?,
             construction: buildings.construction,
             buildings: buildings
                 .buildings
