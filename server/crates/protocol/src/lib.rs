@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Bumped whenever a message shape changes incompatibly.
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// Messages sent by the client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -21,6 +21,11 @@ pub enum ClientMsg {
     /// Log in (or register, if the name is new). Must follow `Hello`.
     Login {
         name: String,
+        password: String,
+    },
+    /// Reconnect with a previously issued bearer token.
+    Resume {
+        token: String,
     },
     /// Request a full snapshot of the player's city.
     GetCity,
@@ -40,6 +45,7 @@ pub enum ServerMsg {
     LoggedIn {
         player_id: u64,
         name: String,
+        token: String,
     },
     CityState {
         city: CityView,
@@ -61,6 +67,8 @@ pub enum ErrorCode {
     NotLoggedIn,
     AlreadyLoggedIn,
     InvalidName,
+    InvalidCredentials,
+    Internal,
 }
 
 /// Client-facing snapshot of a city.
@@ -120,11 +128,14 @@ mod tests {
 
     #[test]
     fn client_messages_use_snake_case_type_tags() {
-        let msg = ClientMsg::from_json(r#"{"type":"login","name":"alice"}"#).unwrap();
+        let msg =
+            ClientMsg::from_json(r#"{"type":"login","name":"alice","password":"password123"}"#)
+                .unwrap();
         assert_eq!(
             msg,
             ClientMsg::Login {
-                name: "alice".into()
+                name: "alice".into(),
+                password: "password123".into()
             }
         );
         assert_eq!(

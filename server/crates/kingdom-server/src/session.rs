@@ -5,9 +5,10 @@ use futures_util::{SinkExt, StreamExt};
 use game_core::PlayerId;
 use protocol::{ClientMsg, ErrorCode, PROTOCOL_VERSION, ServerMsg};
 
-use crate::state::{Kingdom, valid_name};
+use crate::state::Kingdom;
 
 /// Per-connection handshake progress.
+#[derive(Clone)]
 enum Phase {
     AwaitingHello,
     AwaitingLogin,
@@ -19,6 +20,7 @@ pub async fn run(socket: WebSocket, kingdom: Arc<Kingdom>) {
     let (mut tx, mut rx) = socket.split();
     let mut phase = Phase::AwaitingHello;
 
+    let mut failures = 0;
     while let Some(Ok(frame)) = rx.next().await {
         let text = match frame {
             Message::Text(t) => t,
@@ -26,9 +28,29 @@ pub async fn run(socket: WebSocket, kingdom: Arc<Kingdom>) {
             _ => continue,
         };
         let replies = match ClientMsg::from_json(&text) {
-            Ok(msg) => handle(&kingdom, &mut phase, msg),
+            Ok(msg) => {
+                let kingdom = kingdom.clone();
+                let mut worker_phase = phase.clone();
+                match tokio::task::spawn_blocking(move || {
+                    let replies = handle(&kingdom, &mut worker_phase, msg);
+                    (worker_phase, replies)
+                })
+                .await
+                {
+                    Ok((next_phase, replies)) => {
+                        phase = next_phase;
+                        replies
+                    }
+                    Err(_) => return,
+                }
+            }
             Err(e) => vec![ServerMsg::error(ErrorCode::BadMessage, e.to_string())],
         };
+        if !matches!(phase, Phase::Playing(_))
+            && replies.iter().any(|r| matches!(r, ServerMsg::Error { .. }))
+        {
+            failures += 1;
+        }
         for reply in replies {
             if tx
                 .send(Message::Text(reply.to_json().into()))
@@ -37,6 +59,10 @@ pub async fn run(socket: WebSocket, kingdom: Arc<Kingdom>) {
             {
                 return;
             }
+        }
+        if failures >= 5 {
+            let _ = tx.send(Message::Close(None)).await;
+            break;
         }
     }
 }
@@ -62,22 +88,20 @@ fn handle(kingdom: &Kingdom, phase: &mut Phase, msg: ClientMsg) -> Vec<ServerMsg
             vec![ServerMsg::error(ErrorCode::BadMessage, "send hello first")]
         }
 
-        (Phase::AwaitingLogin, ClientMsg::Login { name }) => {
-            if !valid_name(&name) {
-                return vec![ServerMsg::error(
-                    ErrorCode::InvalidName,
-                    "names are 3-16 letters, digits or underscores",
-                )];
-            }
-            let player_id = kingdom.login_or_register(&name);
-            *phase = Phase::Playing(player_id);
-            vec![ServerMsg::LoggedIn { player_id, name }]
+        (Phase::AwaitingLogin, ClientMsg::Login { name, password }) => {
+            authenticated(phase, kingdom.login(&name, &password))
+        }
+        (Phase::AwaitingLogin, ClientMsg::Resume { token }) => {
+            authenticated(phase, kingdom.resume(&token))
         }
         (Phase::AwaitingLogin, _) => {
             vec![ServerMsg::error(ErrorCode::NotLoggedIn, "log in first")]
         }
 
-        (Phase::Playing(_), ClientMsg::Hello { .. } | ClientMsg::Login { .. }) => {
+        (
+            Phase::Playing(_),
+            ClientMsg::Hello { .. } | ClientMsg::Login { .. } | ClientMsg::Resume { .. },
+        ) => {
             vec![ServerMsg::error(
                 ErrorCode::AlreadyLoggedIn,
                 "already logged in",
@@ -90,5 +114,18 @@ fn handle(kingdom: &Kingdom, phase: &mut Phase, msg: ClientMsg) -> Vec<ServerMsg
                 "no city for player",
             )],
         },
+    }
+}
+
+fn authenticated(phase: &mut Phase, result: Result<ServerMsg, ErrorCode>) -> Vec<ServerMsg> {
+    match result {
+        Ok(reply @ ServerMsg::LoggedIn { player_id, .. }) => {
+            *phase = Phase::Playing(player_id);
+            vec![reply]
+        }
+        _ => vec![ServerMsg::error(
+            ErrorCode::InvalidCredentials,
+            "invalid credentials",
+        )],
     }
 }

@@ -18,7 +18,7 @@ func _initialize() -> void:
 	_net.status_changed.connect(func(t: String) -> void: print("net: ", t))
 	_net.server_error.connect(func(code: String, m: String) -> void: _fail("server error %s: %s" % [code, m]))
 	_net.city_received.connect(_on_city)
-	_net.login("e2e_bot", url)
+	_net.login("e2e_bot", "e2e-password", url)
 
 
 func _process(delta: float) -> bool:

@@ -41,6 +41,13 @@ layout_mode = 2
 placeholder_text = "Governor name"
 max_length = 16
 
+[node name="PasswordEdit" type="LineEdit" parent="Center/Panel"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Password (8?128 characters)"
+max_length = 128
+secret = true
+
 [node name="ServerEdit" type="LineEdit" parent="Center/Panel"]
 unique_name_in_owner = true
 layout_mode = 2
