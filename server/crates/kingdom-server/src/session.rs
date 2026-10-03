@@ -123,6 +123,14 @@ fn handle(kingdom: &Kingdom, phase: &mut Phase, msg: ClientMsg) -> Vec<ServerMsg
                 "already logged in",
             )]
         }
+        (Phase::Playing(player), ClientMsg::BuildBuilding { kind, x, y }) => kingdom
+            .change_city(*player, |city, now, data| {
+                city.build_building(&kind, x, y, now, data).map(|_| ())
+            })
+            .err()
+            .map(|(code, message)| ServerMsg::error(code, message))
+            .into_iter()
+            .collect(),
         (Phase::Playing(player), ClientMsg::UpgradeBuilding { building_id }) => kingdom
             .change_city(*player, |city, now, data| {
                 city.upgrade_building(building_id, now, data)

@@ -32,3 +32,7 @@ func test_city_update_refreshes_game_state() -> void:
 	net._handle({"type": "city_update", "city": city})
 	assert_eq(GameState.city, city)
 	net.free()
+
+
+func test_construction_message_shape() -> void:
+	assert_eq(Protocol.build_building("farm", 0, 38), {"type": "build_building", "kind": "farm", "x": 0, "y": 38})

@@ -210,7 +210,9 @@ impl Kingdom {
                         x: b.x,
                         y: b.y,
                         footprint: def.footprint,
-                        state: if b.upgrade.is_some() {
+                        state: if b.level == 0 {
+                            BuildingState::UnderConstruction
+                        } else if b.upgrade.is_some() {
                             BuildingState::Upgrading
                         } else {
                             BuildingState::Ready

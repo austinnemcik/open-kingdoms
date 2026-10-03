@@ -231,3 +231,130 @@ async fn persisted_upgrade_completes_after_restart() {
     assert!(city.buildings[0].completes_at.is_none());
     assert_eq!(city.resources.food, 720);
 }
+
+#[tokio::test]
+async fn construction_rules_cancellation_and_completion_over_websocket() {
+    use serde_json::json;
+    let server = TestServer::start().await;
+    let mut alice = server.login("alice").await;
+    let mut bob = server.login("bob").await;
+    let initial = alice.city().await;
+    for (msg, reason) in [
+        (
+            json!({"type":"build_building","kind":"fake","x":0,"y":0}),
+            "unknown building",
+        ),
+        (
+            json!({"type":"build_building","kind":"quarry","x":0,"y":0}),
+            "building requires a higher City Hall level",
+        ),
+        (
+            json!({"type":"build_building","kind":"city_hall","x":0,"y":0}),
+            "maximum count for this building kind reached",
+        ),
+        (
+            json!({"type":"build_building","kind":"farm","x":u32::MAX,"y":0}),
+            "building footprint lies outside the city",
+        ),
+        (
+            json!({"type":"build_building","kind":"farm","x":18,"y":18}),
+            "building footprint overlaps another building",
+        ),
+    ] {
+        rejected(alice.request(msg).await, reason);
+    }
+    assert!(matches!(
+        alice
+            .request(json!({"type":"build_building","kind":"farm","x":-1,"y":0}))
+            .await,
+        ServerMsg::Error {
+            code: protocol::ErrorCode::BadMessage,
+            ..
+        }
+    ));
+    assert_eq!(alice.city().await, initial);
+    let pending = update(
+        alice
+            .request(json!({"type":"build_building","kind":"farm","x":0,"y":0}))
+            .await,
+    );
+    let farm = pending.buildings.last().unwrap();
+    let id = farm.id;
+    assert_eq!(farm.level, 0);
+    assert_eq!(farm.state, protocol::BuildingState::UnderConstruction);
+    assert_eq!(farm.started_at, Some(100));
+    assert_eq!(farm.completes_at, Some(145));
+    assert_eq!(pending.resources.wood, initial.resources.wood - 50);
+    assert_eq!(pending.rates_per_hour, initial.rates_per_hour);
+    assert_eq!(bob.city().await, initial);
+    rejected(
+        alice
+            .request(json!({"type":"build_building","kind":"farm","x":1,"y":0}))
+            .await,
+        "building footprint overlaps another building",
+    );
+    update(
+        alice
+            .request(json!({"type":"build_building","kind":"lumber_mill","x":2,"y":0}))
+            .await,
+    );
+    rejected(
+        alice
+            .request(json!({"type":"build_building","kind":"farm","x":4,"y":0}))
+            .await,
+        "all builders are busy",
+    );
+    let cancelled = update(
+        alice
+            .request(json!({"type":"cancel_upgrade","building_id":id}))
+            .await,
+    );
+    assert!(!cancelled.buildings.iter().any(|b| b.id == id));
+    assert_eq!(cancelled.resources.wood, initial.resources.wood);
+    let replaced = update(
+        alice
+            .request(json!({"type":"build_building","kind":"farm","x":0,"y":0}))
+            .await,
+    );
+    assert!(replaced.buildings.last().unwrap().id > id);
+    server.clock.set(145);
+    let completed = update(alice.receive().await);
+    assert_eq!(completed.buildings.len(), 6);
+    assert!(
+        completed
+            .buildings
+            .iter()
+            .all(|b| b.level == 1 && b.state == protocol::BuildingState::Ready)
+    );
+    assert_eq!(completed.rates_per_hour.food, 1200);
+    assert_eq!(completed.rates_per_hour.wood, 1200);
+}
+#[tokio::test]
+async fn construction_survives_restart_and_then_pushes_completion() {
+    use serde_json::json;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("construction.db");
+    let server = TestServer::open(&path, 100).await;
+    let mut c = server.login("alice").await;
+    let pending = update(
+        c.request(json!({"type":"build_building","kind":"farm","x":38,"y":38}))
+            .await,
+    );
+    let id = pending.buildings.last().unwrap().id;
+    c.0.close(None).await.unwrap();
+    drop(c);
+    drop(server);
+    let server = TestServer::open(&path, 120).await;
+    let mut c = server.login("alice").await;
+    let restored = c.city().await;
+    assert_eq!(
+        restored.buildings.last().unwrap(),
+        pending.buildings.last().unwrap()
+    );
+    server.clock.set(145);
+    let complete = update(c.receive().await);
+    let farm = complete.buildings.iter().find(|b| b.id == id).unwrap();
+    assert_eq!(farm.level, 1);
+    assert_eq!(farm.state, protocol::BuildingState::Ready);
+    assert!(farm.started_at.is_none() && farm.completes_at.is_none());
+}

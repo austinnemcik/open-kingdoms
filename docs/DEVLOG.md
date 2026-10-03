@@ -91,3 +91,15 @@ ID, what changed, and anything the next run should know.
   over-cap refunds. Exact-deadline completion wins. Godot Net updates GameState.
 - Added pure rule/edge tests plus WebSocket tests for queues, cancellation,
   owner isolation, timer pushes and restart completion.
+
+## 2026-10-03 - P1-06 New construction
+
+- Added build_building with authoritative kind/unlock/count/footprint/overlap/cost/
+  builder checks, overflow-safe coordinates and monotonic IDs. Jobs persist and
+  use the existing completion tick, notifications and full-refund cancellation.
+- Pending buildings are level zero with under_construction state and timestamps;
+  they reserve tiles/count/slots but produce nothing until completion. Cancelling
+  removes them and releases the reservation.
+- Extended pure rule and WebSocket tests for construction, cancellation, boundary
+  coordinates, ownership and restart completion. Godot e2e renders a level-zero farm.
+- Full client build/upgrade UI remains P1-07/P1-08; audit hardening remains P1-H1.

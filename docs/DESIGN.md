@@ -103,3 +103,14 @@ Cancellation before completion returns 100% of the recorded cost (the YAML refun
 policy); completion at the exact deadline takes precedence over cancellation.
 Refunds may temporarily exceed storage; production pauses until below capacity.
 Persisted changes and timer completions push a full city_update to owner sessions.
+
+## New construction
+
+New buildings reserve their full square footprint immediately, count toward the
+kind's max_count, and occupy one of the same free builder slots as upgrades.
+Bounds, overlap, City Hall unlock, count, cost and builder availability are checked
+before payment. Level-zero buildings have state under_construction and contribute
+no production or capacity until completion. Cancelling through cancel_upgrade
+removes the unfinished building, releases its tiles/slot, and refunds its paid
+cost. Building IDs are never reused. Ready buildings have null job timestamps;
+active jobs expose started_at and completes_at in Unix seconds.
