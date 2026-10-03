@@ -268,3 +268,166 @@ fn assert_same_persisted_city(before: &ServerMsg, after: &ServerMsg) {
     assert!(after.as_of >= before.as_of);
     assert!(after.resources.food >= before.resources.food);
 }
+
+async fn limited_server(
+    mut configure: impl FnMut(&mut data::ServerLimits),
+) -> (SocketAddr, tokio::task::JoinHandle<anyhow::Result<()>>) {
+    let mut data = GameData::load(GameData::repo_data_dir()).unwrap();
+    configure(&mut data.limits);
+    data.limits.validate().unwrap();
+    let (tx, rx) = oneshot::channel();
+    let task = tokio::spawn(kingdom_server::serve(
+        "127.0.0.1:0".parse().unwrap(),
+        data,
+        move |addr| {
+            let _ = tx.send(addr);
+        },
+    ));
+    (rx.await.unwrap(), task)
+}
+async fn assert_closed(c: &mut Client) {
+    let result = tokio::time::timeout(std::time::Duration::from_secs(3), c.ws.next())
+        .await
+        .unwrap();
+    assert!(
+        matches!(result, None | Some(Err(_)) | Some(Ok(Message::Close(_)))),
+        "{result:?}"
+    );
+}
+#[tokio::test]
+async fn handshake_deadline_survives_pings_and_idle_timeout_closes_players() {
+    let (addr, task) = limited_server(|l| {
+        l.handshake_timeout_ms = 150;
+    })
+    .await;
+    let mut c = Client::connect(addr).await;
+    c.hello().await;
+    for _ in 0..3 {
+        assert!(matches!(
+            c.request(r#"{"type":"ping","nonce":1}"#).await,
+            ServerMsg::Pong { .. }
+        ));
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+    }
+    assert_closed(&mut c).await;
+    task.abort();
+    let (addr, task) = limited_server(|l| {
+        l.idle_timeout_ms = 1500;
+    })
+    .await;
+    let mut c = Client::connect(addr).await;
+    c.hello().await;
+    assert!(matches!(
+        c.request(r#"{"type":"login","name":"idle","password":"password123"}"#)
+            .await,
+        ServerMsg::LoggedIn { .. }
+    ));
+    assert_closed(&mut c).await;
+    task.abort();
+}
+#[tokio::test]
+async fn transport_buckets_and_connection_caps_release_on_disconnect() {
+    for global in [false, true] {
+        let (addr, task) = limited_server(|l| {
+            l.max_connections = if global { 1 } else { 2 };
+            l.max_connections_per_ip = 1;
+            l.message_burst = 2;
+            l.messages_per_second = 1;
+        })
+        .await;
+        let mut c = Client::connect(addr).await;
+        assert!(
+            tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+                .await
+                .is_err()
+        );
+        c.hello().await;
+        c.request(r#"{"type":"ping","nonce":1}"#).await;
+        c.ws.send(Message::Text(r#"{"type":"ping","nonce":2}"#.into()))
+            .await
+            .unwrap();
+        assert_closed(&mut c).await;
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        let mut next = Client::connect(addr).await;
+        assert!(matches!(next.hello().await, ServerMsg::Welcome { .. }));
+        task.abort();
+    }
+}
+#[tokio::test]
+async fn authentication_budgets_are_shared_across_connections() {
+    for mode in 0..3 {
+        let (addr, task) = limited_server(|l| match mode {
+            0 => l.logins_per_ip = 1,
+            1 => l.logins_per_account = 1,
+            _ => l.registrations_per_ip = 1,
+        })
+        .await;
+        let mut first = Client::connect(addr).await;
+        first.hello().await;
+        assert!(matches!(
+            first
+                .request(r#"{"type":"login","name":"alice","password":"password123"}"#)
+                .await,
+            ServerMsg::LoggedIn { .. }
+        ));
+        let mut second = Client::connect(addr).await;
+        second.hello().await;
+        let name = if mode == 1 { "alice" } else { "another" };
+        let reply = second
+            .request(
+                &serde_json::json!({"type":"login","name":name,"password":"password123"})
+                    .to_string(),
+            )
+            .await;
+        assert!(matches!(
+            reply,
+            ServerMsg::Error {
+                code: ErrorCode::RateLimited,
+                ..
+            }
+        ));
+        task.abort();
+    }
+}
+#[tokio::test]
+async fn internal_auth_errors_are_not_credentials_failures() {
+    use kingdom_server::{
+        Kingdom,
+        store::{SqliteStore, Store},
+    };
+    let data = GameData::load(GameData::repo_data_dir()).unwrap();
+    let mut store = SqliteStore::open(":memory:").unwrap();
+    store
+        .register(
+            "broken",
+            "invalid hash",
+            &game_core::City::new_starting(&data, 100),
+        )
+        .unwrap();
+    let kingdom = std::sync::Arc::new(Kingdom::with_store(data, Box::new(store)));
+    let (tx, rx) = oneshot::channel();
+    let task = tokio::spawn(kingdom_server::serve_kingdom(
+        "127.0.0.1:0".parse().unwrap(),
+        kingdom,
+        move |addr| {
+            let _ = tx.send(addr);
+        },
+    ));
+    let mut c = Client::connect(rx.await.unwrap()).await;
+    c.hello().await;
+    for _ in 0..6 {
+        assert!(matches!(
+            c.request(r#"{"type":"login","name":"broken","password":"password123"}"#)
+                .await,
+            ServerMsg::Error {
+                code: ErrorCode::Internal,
+                ..
+            }
+        ));
+    }
+    assert!(matches!(
+        c.request(r#"{"type":"ping","nonce":42}"#).await,
+        ServerMsg::Pong { nonce: 42 }
+    ));
+    task.abort();
+}

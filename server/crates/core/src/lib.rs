@@ -3,6 +3,7 @@
 //! keeps every rule deterministic and unit-testable.
 
 pub mod city;
+pub mod rate_limit;
 
 pub use city::{Building, City, CityError, Upgrade};
 

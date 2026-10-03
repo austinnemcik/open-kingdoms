@@ -1,6 +1,7 @@
 //! Synchronous persistence, invoked only from blocking workers by the server.
 use game_core::{City, PlayerId};
 use rusqlite::{Connection, OptionalExtension, params};
+use sha2::{Digest, Sha256};
 use std::{path::Path, time::Duration};
 
 /// Persistence failures never include credentials in client responses.
@@ -27,9 +28,16 @@ pub trait Store: Send {
     /// Atomically create the identity, credentials, and starting city.
     fn register(&mut self, name: &str, hash: &str, city: &City) -> Result<PlayerId, StoreError>;
     /// Persist a new bearer session before returning it to the client.
-    fn save_session(&self, token: &str, player: PlayerId) -> Result<(), StoreError>;
+    fn save_session(
+        &self,
+        token: &str,
+        player: PlayerId,
+        now: u64,
+        ttl: u64,
+        cap: u32,
+    ) -> Result<(), StoreError>;
     /// Resolve a previously issued bearer token.
-    fn session(&self, token: &str) -> Result<Option<(PlayerId, String)>, StoreError>;
+    fn session(&self, token: &str, now: u64) -> Result<Option<(PlayerId, String)>, StoreError>;
     /// Load a player's authoritative city.
     fn city(&self, player: PlayerId) -> Result<Option<City>, StoreError>;
     /// Replace a city atomically after applying pure rules.
@@ -51,12 +59,17 @@ impl SqliteStore {
             "PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;",
         )?;
         let version: u32 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version > 1 {
+        if version > 2 {
             return Err(StoreError::Schema(version));
         }
         if version == 0 {
             let tx = connection.transaction()?;
             tx.execute_batch(include_str!("../migrations/001_initial.sql"))?;
+            tx.commit()?;
+        }
+        if version < 2 {
+            let tx = connection.transaction()?;
+            tx.execute_batch(include_str!("../migrations/002_hashed_sessions.sql"))?;
             tx.commit()?;
         }
         Ok(Self { connection })
@@ -82,15 +95,33 @@ impl Store for SqliteStore {
         tx.commit()?;
         Ok(id)
     }
-    fn save_session(&self, token: &str, player: PlayerId) -> Result<(), StoreError> {
-        self.connection.execute(
-            "INSERT INTO sessions(token,player_id) VALUES (?1,?2)",
-            params![token, player],
+    fn save_session(
+        &self,
+        token: &str,
+        player: PlayerId,
+        now: u64,
+        ttl: u64,
+        cap: u32,
+    ) -> Result<(), StoreError> {
+        let tx = self.connection.unchecked_transaction()?;
+        tx.execute("DELETE FROM sessions WHERE expires_at <= ?1", [now])?;
+        tx.execute(
+            "INSERT INTO sessions(token_hash,player_id,created_at,expires_at) VALUES (?1,?2,?3,?4)",
+            params![
+                Sha256::digest(token.as_bytes()).as_slice(),
+                player,
+                now,
+                now.saturating_add(ttl).min(i64::MAX as u64)
+            ],
         )?;
+        tx.execute("DELETE FROM sessions WHERE player_id=?1 AND rowid NOT IN (SELECT rowid FROM sessions WHERE player_id=?1 ORDER BY created_at DESC, rowid DESC LIMIT ?2)", params![player, cap])?;
+        tx.commit()?;
         Ok(())
     }
-    fn session(&self, token: &str) -> Result<Option<(PlayerId, String)>, StoreError> {
-        Ok(self.connection.query_row("SELECT p.id,p.name FROM sessions s JOIN players p ON p.id=s.player_id WHERE s.token=?1", [token], |r| Ok((r.get(0)?,r.get(1)?))).optional()?)
+    fn session(&self, token: &str, now: u64) -> Result<Option<(PlayerId, String)>, StoreError> {
+        self.connection
+            .execute("DELETE FROM sessions WHERE expires_at <= ?1", [now])?;
+        Ok(self.connection.query_row("SELECT p.id,p.name FROM sessions s JOIN players p ON p.id=s.player_id WHERE s.token_hash=?1 AND s.expires_at>?2", params![Sha256::digest(token.as_bytes()).as_slice(), now], |r| Ok((r.get(0)?,r.get(1)?))).optional()?)
     }
     fn city(&self, player: PlayerId) -> Result<Option<City>, StoreError> {
         let json: Option<String> = self
@@ -127,6 +158,49 @@ impl Store for SqliteStore {
 mod tests {
     use super::*;
     #[test]
+    fn migration_revokes_plaintext_tokens_and_hashes_caps_and_expires_new_sessions() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("legacy.db");
+        let db = Connection::open(&path).unwrap();
+        db.execute_batch(include_str!("../migrations/001_initial.sql"))
+            .unwrap();
+        db.execute("INSERT INTO players(id,name) VALUES (1,'alice')", [])
+            .unwrap();
+        db.execute(
+            "INSERT INTO sessions(token,player_id) VALUES ('legacy',1)",
+            [],
+        )
+        .unwrap();
+        drop(db);
+        let store = SqliteStore::open(&path).unwrap();
+        assert!(store.session("legacy", 100).unwrap().is_none());
+        for token in ["one", "two", "three"] {
+            store.save_session(token, 1, 100, 10, 2).unwrap();
+        }
+        assert!(store.session("one", 100).unwrap().is_none());
+        assert!(store.session("two", 109).unwrap().is_some());
+        let hashes: Vec<Vec<u8>> = store
+            .connection
+            .prepare("SELECT token_hash FROM sessions")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(hashes.len(), 2);
+        assert!(hashes.contains(&Sha256::digest(b"three").to_vec()));
+        assert!(store.session("two", 110).unwrap().is_none());
+        assert_eq!(
+            store
+                .connection
+                .query_row("SELECT count(*) FROM sessions", [], |r| r.get::<_, u32>(0))
+                .unwrap(),
+            0
+        );
+        drop(store);
+        assert!(SqliteStore::open(path).is_ok());
+    }
+    #[test]
     fn migrations_atomic_registration_and_city_roundtrip() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("kingdom.db");
@@ -138,8 +212,8 @@ mod tests {
         assert_eq!(store.player_ids().unwrap(), vec![id]);
         city.resources.food = 42;
         store.save_city(id, &city).unwrap();
-        store.save_session("token", id).unwrap();
-        assert!(store.save_session("orphan", id + 1).is_err());
+        store.save_session("token", id, 100, 1000, 5).unwrap();
+        assert!(store.save_session("orphan", id + 1, 100, 1000, 5).is_err());
         assert!(store.save_city(id + 1, &city).is_err());
         drop(store);
         let store = SqliteStore::open(path).unwrap();
@@ -148,7 +222,10 @@ mod tests {
             store.account("alice").unwrap().unwrap().password_hash,
             "hash"
         );
-        assert_eq!(store.session("token").unwrap(), Some((id, "alice".into())));
-        assert!(store.session("' OR 1=1 --").unwrap().is_none());
+        assert_eq!(
+            store.session("token", 100).unwrap(),
+            Some((id, "alice".into()))
+        );
+        assert!(store.session("' OR 1=1 --", 100).unwrap().is_none());
     }
 }

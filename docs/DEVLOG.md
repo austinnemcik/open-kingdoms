@@ -162,3 +162,23 @@ ID, what changed, and anything the next run should know.
   - `screenshot.gd` accepts `[focus_x] [focus_z]` after the camera distance.
   - Ideas not done: bridges where the gate roads meet the river, animated
     flags/water wheel, tier-up construction scaffolding, LOD for the forest.
+
+## 2026-10-03 - P1-H1 Server hardening
+
+- Removed persisted-kind panics, recover poisoned store locks, and keep city
+  load/collect/save in one critical section. Views are built after releasing it.
+- Argon2 runs outside the store lock, bounded by a semaphore; competing new-name
+  registrations verify the winning password before issuing a session.
+- Validated `data/server.yaml` controls handshake/idle deadlines, message token
+  buckets, global/per-peer-IP connections, shared IP/account login and IP
+  registration budgets, hash concurrency, and bounded admission tables. Ping
+  bypasses blocking workers; all input frames consume the message budget.
+- Migration 002 replaces plaintext sessions with SHA-256 digests, creation and
+  expiry times; expiry is enforced/pruned on session access and issuance, with
+  deterministic per-player eviction. Existing tokens are revoked because their
+  creation times are unknown; players log in with their password again.
+- Internal authentication failures propagate as `internal` and do not consume
+  the credential-failure allowance. Rate limits use monotonic elapsed time;
+  operational proxy deployments currently count the TCP peer, not forwarded IPs.
+- Added pure token-bucket/unknown-kind tests, lock/race/atomic read tests, migration
+  tests, and WebSocket timeout, cap, shared-budget and Internal-error regressions.

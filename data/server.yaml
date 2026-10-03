@@ -1,0 +1,16 @@
+# Transport and authentication resource budgets. No proxy headers are trusted.
+handshake_timeout_ms: 10000
+idle_timeout_ms: 60000
+max_connections: 2000
+max_connections_per_ip: 20
+messages_per_second: 20
+message_burst: 40
+concurrent_hashes: 4
+auth_window_ms: 60000
+logins_per_ip: 30
+logins_per_account: 10
+registrations_per_ip: 5
+max_rate_entries: 10000
+max_auth_failures: 5
+session_ttl_s: 604800
+sessions_per_player: 5

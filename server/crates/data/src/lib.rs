@@ -175,9 +175,63 @@ struct BuildingsFile {
     buildings: Vec<BuildingDef>,
 }
 
+/// Validated operational limits; durations here use milliseconds except session TTL.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ServerLimits {
+    pub handshake_timeout_ms: u64,
+    pub idle_timeout_ms: u64,
+    pub max_connections: u32,
+    pub max_connections_per_ip: u32,
+    pub messages_per_second: u32,
+    pub message_burst: u32,
+    pub concurrent_hashes: u32,
+    pub auth_window_ms: u64,
+    pub logins_per_ip: u32,
+    pub logins_per_account: u32,
+    pub registrations_per_ip: u32,
+    pub max_rate_entries: u32,
+    pub max_auth_failures: u32,
+    pub session_ttl_s: u64,
+    pub sessions_per_player: u32,
+}
+impl ServerLimits {
+    /// Reject zero, excessive, or inconsistent limits before serving traffic.
+    pub fn validate(&self) -> Result<(), DataError> {
+        let counts = [
+            self.max_connections,
+            self.max_connections_per_ip,
+            self.messages_per_second,
+            self.message_burst,
+            self.concurrent_hashes,
+            self.logins_per_ip,
+            self.logins_per_account,
+            self.registrations_per_ip,
+            self.max_rate_entries,
+            self.max_auth_failures,
+            self.sessions_per_player,
+        ];
+        if counts.iter().any(|v| *v == 0 || *v > 1_000_000)
+            || [
+                self.handshake_timeout_ms,
+                self.idle_timeout_ms,
+                self.auth_window_ms,
+            ]
+            .iter()
+            .any(|v| *v == 0 || *v > 86_400_000)
+            || self.session_ttl_s == 0
+            || self.session_ttl_s > 31_536_000
+            || self.max_connections_per_ip > self.max_connections
+        {
+            return Err(DataError::Invalid("invalid server limits".into()));
+        }
+        Ok(())
+    }
+}
+
 /// All loaded game data.
 #[derive(Debug, Clone)]
 pub struct GameData {
+    pub limits: ServerLimits,
     pub construction: ConstructionConfig,
     buildings: HashMap<String, BuildingDef>,
     pub start: StartConfig,
@@ -194,6 +248,7 @@ impl GameData {
             return Err(DataError::Invalid("duplicate building id".into()));
         }
         let data = Self {
+            limits: read_yaml(&dir.join("server.yaml"))?,
             construction: buildings.construction,
             buildings: buildings
                 .buildings
@@ -220,6 +275,7 @@ impl GameData {
     }
 
     fn validate(&self) -> Result<(), DataError> {
+        self.limits.validate()?;
         let invalid = |msg: String| Err(DataError::Invalid(msg));
         if self.building("city_hall").is_none() {
             return invalid("buildings.yaml must define city_hall".into());
@@ -349,6 +405,18 @@ mod tests {
         GameData::load(GameData::repo_data_dir()).expect("repo data must load and validate")
     }
 
+    #[test]
+    fn server_limits_reject_invalid_budgets() {
+        let mut limits = data().limits;
+        limits.concurrent_hashes = 0;
+        assert!(limits.validate().is_err());
+        limits = data().limits;
+        limits.handshake_timeout_ms = u64::MAX;
+        assert!(limits.validate().is_err());
+        limits = data().limits;
+        limits.max_connections_per_ip = limits.max_connections + 1;
+        assert!(limits.validate().is_err());
+    }
     #[test]
     fn repo_data_is_valid() {
         let d = data();
