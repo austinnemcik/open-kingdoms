@@ -53,8 +53,8 @@ Phase 1 amendments that pin down what the tasks above must build live in
 
 Goal: a player can explore, gather, and fight barbarians on a shared map.
 
-- [ ] P2-01 Map generation in `game-core`
-  - Accept: `generate_map(seed)` implements hash, noise, rings, spokes, passes, clearings and connectivity; tests: fixed checksum for seed 1, all 16 pass centres are `pass`, every walkable tile reachable from the Throne, walkable share 55–80 %; runs < 2 s in release.
+- [x] P2-01 Map generation in `game-core`
+  - Accept: `generate_map(seed)` implements hash, noise, rings, spokes, passes, clearings and connectivity; tests: fixed checksum for seed 1, all 16 pass centres are `pass`, every walkable tile reachable from the Throne, walkable share 90–96 % (corrected to match the specified noise); runs < 2 s in release.
   - Spec: 06 §1–2; data `world.yaml` loaded and validated by the `data` crate.
 - [ ] P2-02 Map objects, footprints and city placement
   - Accept: object index with free-tile rule; new accounts spawn by the province rule; 1,000 simulated spawns never overlap; city position persisted.

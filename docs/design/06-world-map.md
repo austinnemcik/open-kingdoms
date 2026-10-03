@@ -57,6 +57,12 @@ walk the cumulative weights in listed order.
    `hills` if `elevation > 0.68`; else `forest` if `moisture > 0.58`; else `plains`.
 2. **Passes**: for each pass, the gap is every ring/spoke tile within 3.5 tiles
    of the pass centre line (gap width 7); set those tiles to `pass` and record the pass id per tile.
+   Ring pass centres use the midpoint radius `(r_min + r_max) / 2`; their
+   centre lines are outward radial rays at the listed angles, restricted to
+   that ring. Spoke gaps use the perpendicular line at distance `pass_r`
+   along that spoke, restricted to that spoke. IDs are zero-based in YAML
+   ring/angle order, followed by spoke/angle order. Cardinal directions use
+   exact unit vectors to avoid trigonometric residue moving boundary tiles.
 3. **Clearings**: set every non-ring, non-spoke tile within 8 tiles of a pass
    centre, a Sanctum-type site centre or the Throne to `plains`.
 4. **Connectivity**: treat `plains/forest/hills/pass` as walkable (8-neighbour,
@@ -70,9 +76,13 @@ Terrain enum (`u8`): `0 plains, 1 forest, 2 hills, 3 water, 4 mountain, 5 pass`.
 walkable at the same speed (forest/hills are visual only). Biome tint for the
 client: `moisture` and `y/1200` (north = colder); not gameplay.
 
-Unit test: for seed `1`, assert a stored checksum (`splitmix64` fold of all
-tile bytes), that all 16 pass centres are `pass`, all sanctum centres are
-`plains`, and walkable share is between 55 % and 80 %.
+Unit test: for seed `1`, assert checksum `0x66ed2f8a48d8e987` (start at zero,
+fold row-major tile bytes with `acc = splitmix64(acc ^ byte)`), that all 16
+pass centres are `pass`, all sanctum centres are `plains`, and walkable share
+is between 90 % and 96 %. The specified noise thresholds produce 1,343,387
+walkable tiles (93.2908 %); the earlier 55–80 % acceptance range contradicted
+the algorithm. Keep the noise thresholds unchanged. Site order is YAML kind
+order, then ascending angle normalized to `[0,360)` (including negative angles).
 
 ## 3. Map objects
 

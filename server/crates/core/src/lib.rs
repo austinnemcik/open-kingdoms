@@ -5,6 +5,8 @@
 pub mod city;
 pub mod rate_limit;
 
+pub mod map;
+
 pub use city::{Building, City, CityError, Upgrade};
 
 /// Unique id of a player within a kingdom.

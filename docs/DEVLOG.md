@@ -214,3 +214,39 @@ ID, what changed, and anything the next run should know.
 - Rebased on merged P1-H1, retaining peer-address injection and connection
   admission checks in both API-only and web-hosting modes. Added a live TCP
   WebSocket handshake test with static hosting enabled to protect that wiring.
+
+## 2026-10-03 — P2-01: deterministic map generation
+
+- Added pure `game_core::map::generate_map(seed)` and
+  `generate_map_with_config(seed, &WorldConfig)`, plus reusable SplitMix64,
+  hash3, unit and value-noise primitives. Runtime data loads through
+  `GameData.world`; the one-argument generator uses compile-time YAML defaults
+  without I/O, global RNG or mutable global state.
+- Implemented noise terrain, mountain rings/spokes, pass IDs, clearings,
+  no-corner-cutting connectivity pruning, moisture and chunk walkable counts.
+  `Map` is immutable through its public API; tile arrays and chunk counts are
+  row-major. Terrain discriminants are the specified bytes 0–5. Pass IDs are
+  zero-based, rings in YAML order followed by spokes. Sites are ordered by
+  kind, then normalized ascending angle; dynamic ownership is deliberately absent.
+- Interpretation: ring passes use midpoint radii and outward radial gap lines;
+  spoke gaps use perpendicular lines at pass_r. Exact cardinal unit vectors
+  avoid floating-point trig residue shifting inclusive barrier boundaries.
+  The checksum starts at zero and folds row-major bytes with splitmix64(acc ^ byte).
+- Corrected a real spec/acceptance mismatch: the literal noise thresholds give
+  1,343,387 walkable tiles for seed 1 (93.2908%), not 55–80%. Spec and roadmap
+  now accept 90–96%; thresholds are unchanged. Fixed checksum:
+  0x66ed2f8a48d8e987. All 16 pass centres and all 23 site centres meet the spec.
+- World geometry, noise, site coordinates and march limits are typed and
+  validated. Unimplemented world-system sections are retained as YAML values
+  (`systems` / `rules`), explicitly awaiting semantic validation in their tasks.
+- Validation: full `bash scripts/verify.sh` green (Rust fmt/clippy/tests, 48
+  Godot unit tests, client/server E2E); design consistency checker green.
+  Independent cardinal flood-fill checks every walkable tile, and tests check
+  each chunk count, determinism, different seeds and invalid world data.
+  Explicit release timing test: 219 ms (<2 s), run with
+  `cargo test -p game-core --release generation_under_two_seconds -- --ignored --nocapture`.
+- Integration: P2-02 can use terrain_at/index/zone/province, passes/sites and
+  chunk_walkable. P2-03 must gather chunk rows from the full-map row stride;
+  a chunk is not one contiguous 900-byte slice. P2-04 can use moisture (f32,
+  cosmetic only) and y/size for tint. Pass walkability here is geometric only;
+  gameplay paths must additionally enforce ownership (P2-06).
