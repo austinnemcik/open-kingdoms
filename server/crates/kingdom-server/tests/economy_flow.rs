@@ -14,7 +14,13 @@ impl Client {
             .send(Message::Text(msg.to_string().into()))
             .await
             .unwrap();
-        self.receive().await
+        loop {
+            let reply = self.receive().await;
+            if msg["type"] == "get_city" && matches!(reply, ServerMsg::CityUpdate { .. }) {
+                continue;
+            }
+            return reply;
+        }
     }
     async fn receive(&mut self) -> ServerMsg {
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -48,11 +54,14 @@ impl Drop for TestServer {
 }
 impl TestServer {
     async fn start() -> Self {
+        Self::open(":memory:", 100).await
+    }
+    async fn open(path: impl AsRef<std::path::Path>, now: u64) -> Self {
         let data = GameData::load(GameData::repo_data_dir()).unwrap();
-        let clock = Arc::new(ManualClock::new(100));
+        let clock = Arc::new(ManualClock::new(now));
         let kingdom = Arc::new(Kingdom::with_clock(
             data,
-            Box::new(SqliteStore::open(":memory:").unwrap()),
+            Box::new(SqliteStore::open(path).unwrap()),
             clock.clone(),
         ));
         let (tx, rx) = oneshot::channel();
@@ -114,4 +123,111 @@ async fn collection_uses_server_time_and_survives_reconnect() {
             .await,
         ServerMsg::Error { .. }
     ));
+}
+
+fn update(msg: ServerMsg) -> CityView {
+    let ServerMsg::CityUpdate { city } = msg else {
+        panic!("expected update, got {msg:?}")
+    };
+    city
+}
+fn rejected(msg: ServerMsg, expected: &str) {
+    assert!(
+        matches!(msg, ServerMsg::Error { code: protocol::ErrorCode::InvalidAction, ref message } if message == expected),
+        "{msg:?}"
+    );
+}
+#[tokio::test]
+async fn upgrade_queue_refund_tick_and_owner_isolation() {
+    use serde_json::json;
+    let server = TestServer::start().await;
+    let mut alice = server.login("alice").await;
+    let mut other_session = server.login("alice").await;
+    let mut bob = server.login("bob").await;
+    let bob_before = bob.city().await;
+    rejected(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":2}))
+            .await,
+        "upgrade City Hall first",
+    );
+    let started = update(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":1}))
+            .await,
+    );
+    assert_eq!(started.resources.food, 700);
+    assert_eq!(
+        started.buildings[0].state,
+        protocol::BuildingState::Upgrading
+    );
+    assert_eq!(started.buildings[0].completes_at, Some(220));
+    assert_eq!(update(other_session.receive().await), started);
+    assert_eq!(bob.city().await, bob_before);
+    assert!(
+        tokio::time::timeout(Duration::from_millis(50), bob.0.next())
+            .await
+            .is_err()
+    );
+    server.clock.set(220);
+    let done = update(alice.receive().await);
+    assert_eq!(done.buildings[0].level, 2);
+    assert_eq!(done.buildings[0].state, protocol::BuildingState::Ready);
+    assert_eq!(update(other_session.receive().await), done);
+    let farm = update(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":2}))
+            .await,
+    );
+    update(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":3}))
+            .await,
+    );
+    rejected(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":4}))
+            .await,
+        "all builders are busy",
+    );
+    rejected(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":2}))
+            .await,
+        "building already has a job",
+    );
+    let cancelled = update(
+        alice
+            .request(json!({"type":"cancel_upgrade","building_id":2}))
+            .await,
+    );
+    assert_eq!(cancelled.resources.wood, farm.resources.wood + 80);
+    assert_eq!(cancelled.buildings[1].state, protocol::BuildingState::Ready);
+    update(
+        alice
+            .request(json!({"type":"upgrade_building","building_id":4}))
+            .await,
+    );
+}
+#[tokio::test]
+async fn persisted_upgrade_completes_after_restart() {
+    use serde_json::json;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("jobs.db");
+    let server = TestServer::open(&path, 100).await;
+    let mut client = server.login("alice").await;
+    update(
+        client
+            .request(json!({"type":"upgrade_building","building_id":1}))
+            .await,
+    );
+    client.0.close(None).await.unwrap();
+    drop(client);
+    drop(server);
+    let server = TestServer::open(&path, 220).await;
+    let mut client = server.login("alice").await;
+    let city = client.city().await;
+    assert_eq!(city.buildings[0].level, 2);
+    assert!(city.buildings[0].completes_at.is_none());
+    assert_eq!(city.resources.food, 720);
 }

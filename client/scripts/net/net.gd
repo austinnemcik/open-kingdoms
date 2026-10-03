@@ -77,7 +77,8 @@ func _handle(msg: Dictionary) -> void:
 			session_token = msg.token
 			logged_in.emit(int(msg.player_id), msg.name)
 			send(Protocol.get_city())
-		"city_state":
+		"city_state", "city_update":
+			GameState.city = msg.city
 			city_received.emit(msg.city)
 		"error":
 			server_error.emit(msg.code, msg.message)

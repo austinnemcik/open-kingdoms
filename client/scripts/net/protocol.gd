@@ -4,6 +4,8 @@ class_name Protocol
 ## together with PROTOCOL_VERSION on breaking changes.
 
 # City snapshots carry resources, rates_per_hour, capacity (food/wood/stone/gold)
+# Buildings carry state (ready/upgrading), started_at and completes_at (nullable Unix seconds).
+# city_update carries the same full city as city_state; builder_slots is free capacity.
 # and as_of (Unix seconds), plus size and buildings. Production is server-owned.
 const VERSION := 2
 
@@ -39,3 +41,11 @@ static func get_city() -> Dictionary:
 
 static func resume(token: String) -> Dictionary:
 	return {"type": "resume", "token": token}
+
+
+static func upgrade_building(building_id: int) -> Dictionary:
+	return {"type": "upgrade_building", "building_id": building_id}
+
+
+static func cancel_upgrade(building_id: int) -> Dictionary:
+	return {"type": "cancel_upgrade", "building_id": building_id}

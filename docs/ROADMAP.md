@@ -25,7 +25,7 @@ Goal: one player can grow a city from City Hall 1 to 10 by playing.
 - [x] P1-02 Persistence: SQLite (sqlx or rusqlite, migrations in-repo) behind a `Store` trait; players and cities survive a server restart. Integration test restarts the server.
 - [x] P1-03 Server clock + game time: inject a `Clock` trait so core/server code and tests control time; add a 1s server tick task.
 - [x] P1-04 Resource production: per-level production and capacity in `data/buildings.yaml`; `City::collect(now)` in core (lazy, capped by storage); server sends resources with timestamps so the client can interpolate.
-- [ ] P1-05 Upgrade queue (server): `upgrade_building` request; validate resources, City Hall requirement, max level, 2 builder slots; store `completes_at`; complete lazily and on tick; push `city_update`.
+- [x] P1-05 Upgrade queue (server): `upgrade_building` request; validate resources, City Hall requirement, max level, 2 builder slots; store `completes_at`; complete lazily and on tick; push `city_update`.
 - [ ] P1-06 Construct new buildings (server): `build_building {kind, x, y}`; validate footprint, bounds, overlap, `max_count`, unlock level.
 - [ ] P1-H1 Server hardening from audit `docs/audits/2026-10-03-server-p1-01-04.md`: fix all High/Medium/Low items with tests (no panics on persisted data, hashing outside the lock, connection deadlines + rate limits + caps, hashed expiring session tokens via a new migration, propagate Internal errors).
 - [ ] P1-07 Client: click a building → info panel (name, level, next-level cost/time, Upgrade button); live construction progress bar over the building.

@@ -29,6 +29,14 @@ pub enum ClientMsg {
     },
     /// Request a full snapshot of the player's city.
     GetCity,
+    /// Upgrade a building in the authenticated player's city.
+    UpgradeBuilding {
+        building_id: u32,
+    },
+    /// Cancel an unfinished upgrade and refund its paid cost.
+    CancelUpgrade {
+        building_id: u32,
+    },
     Ping {
         nonce: u32,
     },
@@ -46,6 +54,10 @@ pub enum ServerMsg {
         player_id: u64,
         name: String,
         token: String,
+    },
+    /// Unsolicited full snapshot after a city change or timer completion.
+    CityUpdate {
+        city: CityView,
     },
     CityState {
         city: CityView,
@@ -69,6 +81,7 @@ pub enum ErrorCode {
     InvalidName,
     InvalidCredentials,
     Internal,
+    InvalidAction,
 }
 
 /// Client-facing snapshot of a city.
@@ -76,6 +89,7 @@ pub enum ErrorCode {
 pub struct CityView {
     /// Width/height of the square city grid, in tiles.
     pub size: u32,
+    pub builder_slots: u32,
     pub resources: ResourcesView,
     /// Production rates in whole resource units per hour.
     pub rates_per_hour: ResourcesView,
@@ -106,6 +120,18 @@ pub struct BuildingView {
     pub y: u32,
     /// Footprint edge length in tiles.
     pub footprint: u32,
+    pub state: BuildingState,
+    /// Unix seconds, null when no job is active.
+    pub started_at: Option<u64>,
+    pub completes_at: Option<u64>,
+}
+
+/// Renderable building lifecycle (construction arrives in P1-06).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BuildingState {
+    Ready,
+    Upgrading,
 }
 
 impl ClientMsg {

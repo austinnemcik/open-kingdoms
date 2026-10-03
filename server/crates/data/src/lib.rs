@@ -76,8 +76,25 @@ pub struct TimeCurve {
     pub growth: f64,
 }
 
+/// A building that must reach target level minus this offset before upgrading.
+#[derive(Debug, Clone, Deserialize)]
+pub struct LevelRequirement {
+    pub kind: String,
+    pub levels_below_target: u32,
+}
+
+/// Free builder slots and cancellation policy; all economy knobs live in YAML.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConstructionConfig {
+    pub builder_slots: u32,
+    pub cancellation_refund_percent: u32,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct BuildingDef {
+    /// Prerequisites for the target upgrade level, expressed relative to it.
+    #[serde(default)]
+    pub upgrade_requirements: Vec<LevelRequirement>,
     /// Units produced per hour at level one, with per-level growth.
     #[serde(default)]
     pub production: Option<CostCurve>,
@@ -154,12 +171,14 @@ pub struct StartConfig {
 
 #[derive(Debug, Deserialize)]
 struct BuildingsFile {
+    construction: ConstructionConfig,
     buildings: Vec<BuildingDef>,
 }
 
 /// All loaded game data.
 #[derive(Debug, Clone)]
 pub struct GameData {
+    pub construction: ConstructionConfig,
     buildings: HashMap<String, BuildingDef>,
     pub start: StartConfig,
 }
@@ -175,6 +194,7 @@ impl GameData {
             return Err(DataError::Invalid("duplicate building id".into()));
         }
         let data = Self {
+            construction: buildings.construction,
             buildings: buildings
                 .buildings
                 .into_iter()
@@ -204,7 +224,44 @@ impl GameData {
         if self.building("city_hall").is_none() {
             return invalid("buildings.yaml must define city_hall".into());
         }
+        if self.construction.builder_slots == 0
+            || self.construction.cancellation_refund_percent > 100
+        {
+            return invalid("invalid construction slots/refund policy".into());
+        }
         for b in self.buildings() {
+            for requirement in &b.upgrade_requirements {
+                if self.building(&requirement.kind).is_none()
+                    || requirement.levels_below_target == 0
+                    || requirement.levels_below_target > b.max_level
+                {
+                    return invalid(format!("{}: invalid upgrade requirement", b.id));
+                }
+            }
+            if b.upgrade_time.base_s == 0 || (b.id != "city_hall" && b.build_time.base_s == 0) {
+                return invalid(format!(
+                    "{}: construction/upgrade timers must be positive",
+                    b.id
+                ));
+            }
+            for (base, growth) in [
+                (b.upgrade_time.base_s, b.upgrade_time.growth),
+                (b.build_time.base_s, b.build_time.growth),
+            ] {
+                let max = base as f64 * growth.powf(f64::from(b.max_level.saturating_sub(1)));
+                if !max.is_finite() || max >= u64::MAX as f64 {
+                    return invalid(format!("{}: timer curve overflows", b.id));
+                }
+            }
+            for curve in [b.cost, b.upgrade_cost] {
+                for base in curve.base.values() {
+                    let max =
+                        base as f64 * curve.growth.powf(f64::from(b.max_level.saturating_sub(1)));
+                    if !max.is_finite() || max >= u64::MAX as f64 {
+                        return invalid(format!("{}: cost curve overflows", b.id));
+                    }
+                }
+            }
             if b.footprint == 0 || b.max_level == 0 || b.max_count == 0 {
                 return invalid(format!(
                     "{}: footprint, max_level, max_count must be > 0",
@@ -339,5 +396,29 @@ mod tests {
         bad = data();
         bad.start.buildings[0].x = u32::MAX;
         assert!(bad.validate().is_err());
+    }
+    #[test]
+    fn construction_config_rejects_invalid_rules() {
+        let mut d = data();
+        d.construction.builder_slots = 0;
+        assert!(d.validate().is_err());
+        let mut d = data();
+        d.construction.cancellation_refund_percent = 101;
+        assert!(d.validate().is_err());
+        for kind in ["missing", ""] {
+            let mut d = data();
+            d.buildings
+                .get_mut("city_hall")
+                .unwrap()
+                .upgrade_requirements[0]
+                .kind = kind.into();
+            assert!(d.validate().is_err());
+        }
+        let mut d = data();
+        d.buildings.get_mut("farm").unwrap().upgrade_time.base_s = 0;
+        assert!(d.validate().is_err());
+        let mut d = data();
+        d.buildings.get_mut("farm").unwrap().upgrade_cost.growth = f64::MAX;
+        assert!(d.validate().is_err());
     }
 }

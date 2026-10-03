@@ -4,7 +4,7 @@
 
 pub mod city;
 
-pub use city::{Building, City};
+pub use city::{Building, City, CityError, Upgrade};
 
 /// Unique id of a player within a kingdom.
 pub type PlayerId = u64;

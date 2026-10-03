@@ -21,7 +21,23 @@ pub async fn run(socket: WebSocket, kingdom: Arc<Kingdom>) {
     let mut phase = Phase::AwaitingHello;
 
     let mut failures = 0;
-    while let Some(Ok(frame)) = rx.next().await {
+    let mut updates = kingdom.subscribe();
+    loop {
+        let frame = tokio::select! {
+            frame = rx.next() => match frame { Some(Ok(frame)) => frame, _ => break },
+            update = updates.recv() => {
+                let reply = match (&phase, update) {
+                    (Phase::Playing(player), Ok((owner, city))) if *player == owner => Some(ServerMsg::CityUpdate { city }),
+                    (Phase::Playing(player), Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => {
+                        let kingdom = kingdom.clone(); let player = *player;
+                        tokio::task::spawn_blocking(move || kingdom.city_view(player)).await.ok().and_then(Result::ok).map(|city| ServerMsg::CityUpdate { city })
+                    }
+                    _ => None,
+                };
+                if let Some(reply) = reply && tx.send(Message::Text(reply.to_json().into())).await.is_err() { break; }
+                continue;
+            }
+        };
         let text = match frame {
             Message::Text(t) => t,
             Message::Close(_) => break,
@@ -107,6 +123,22 @@ fn handle(kingdom: &Kingdom, phase: &mut Phase, msg: ClientMsg) -> Vec<ServerMsg
                 "already logged in",
             )]
         }
+        (Phase::Playing(player), ClientMsg::UpgradeBuilding { building_id }) => kingdom
+            .change_city(*player, |city, now, data| {
+                city.upgrade_building(building_id, now, data)
+            })
+            .err()
+            .map(|(code, message)| ServerMsg::error(code, message))
+            .into_iter()
+            .collect(),
+        (Phase::Playing(player), ClientMsg::CancelUpgrade { building_id }) => kingdom
+            .change_city(*player, |city, now, data| {
+                city.cancel_upgrade(building_id, now, data)
+            })
+            .err()
+            .map(|(code, message)| ServerMsg::error(code, message))
+            .into_iter()
+            .collect(),
         (Phase::Playing(player), ClientMsg::GetCity) => match kingdom.city_view(*player) {
             Ok(city) => vec![ServerMsg::CityState { city }],
             Err(code) => vec![ServerMsg::error(code, "city unavailable")],

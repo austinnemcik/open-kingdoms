@@ -19,3 +19,16 @@ func test_decode_rejects_non_messages() -> void:
 func test_authentication_shapes() -> void:
 	assert_eq(Protocol.login("alice", "password123"), {"type": "login", "name": "alice", "password": "password123"})
 	assert_eq(Protocol.resume("token"), {"type": "resume", "token": "token"})
+
+
+func test_upgrade_message_shapes() -> void:
+	assert_eq(Protocol.upgrade_building(2), {"type": "upgrade_building", "building_id": 2})
+	assert_eq(Protocol.cancel_upgrade(2), {"type": "cancel_upgrade", "building_id": 2})
+
+
+func test_city_update_refreshes_game_state() -> void:
+	var net: Node = load("res://scripts/net/net.gd").new()
+	var city: Dictionary = {"size": 40, "buildings": []}
+	net._handle({"type": "city_update", "city": city})
+	assert_eq(GameState.city, city)
+	net.free()

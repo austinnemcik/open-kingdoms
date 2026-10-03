@@ -7,6 +7,7 @@ const TIMEOUT_S := 10.0
 
 var _net: Node
 var _elapsed := 0.0
+var _upgrade_requested := false
 
 
 func _initialize() -> void:
@@ -32,6 +33,21 @@ func _on_city(city: Dictionary) -> void:
 	if not city.has("as_of") or not city.has("rates_per_hour") or not city.has("capacity"):
 		_fail("missing resource accounting snapshot fields")
 		return
+	if not _upgrade_requested:
+		_upgrade_requested = true
+		for building: Dictionary in city.buildings:
+			if building.kind == "city_hall":
+				_net.send(Protocol.upgrade_building(int(building.id)))
+				return
+		_fail("missing City Hall")
+		return
+	var has_upgrade := false
+	for building: Dictionary in city.buildings:
+		if building.kind == "city_hall" and building.state == "upgrading":
+			has_upgrade = building.started_at != null and building.completes_at != null
+	if not has_upgrade:
+		_fail("upgrade did not push a renderable city_update")
+		return
 	var view: Node = load("res://scenes/city.tscn").instantiate()
 	root.add_child(view)
 	view.render_city(city)
@@ -39,7 +55,7 @@ func _on_city(city: Dictionary) -> void:
 	if expected == 0 or view.building_count() != expected:
 		_fail("rendered %d buildings, expected %d" % [view.building_count(), expected])
 		return
-	print("E2E OK: logged in and rendered %d buildings" % expected)
+	print("E2E OK: logged in, upgraded City Hall and rendered %d buildings" % expected)
 	quit(0)
 
 

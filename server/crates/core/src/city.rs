@@ -9,6 +9,40 @@ pub struct Building {
     pub level: u32,
     pub x: u32,
     pub y: u32,
+    /// In-progress job, including the paid cost for deterministic refunds.
+    #[serde(default)]
+    pub upgrade: Option<Upgrade>,
+}
+
+/// Persisted construction/upgrade reservation; timestamps are Unix seconds.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Upgrade {
+    pub started_at: u64,
+    pub completes_at: u64,
+    pub paid: Resources,
+}
+
+/// Rejected city requests never partially spend resources or reserve a builder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum CityError {
+    #[error("unknown building")]
+    UnknownBuilding,
+    #[error("building is already at its maximum level")]
+    MaxLevel,
+    #[error("upgrade City Hall first")]
+    CityHallRequired,
+    #[error("upgrade prerequisites are not met")]
+    Prerequisite,
+    #[error("building already has a job")]
+    Busy,
+    #[error("all builders are busy")]
+    BuildersBusy,
+    #[error("insufficient resources")]
+    InsufficientResources,
+    #[error("timer exceeds the supported time range")]
+    TimeOverflow,
+    #[error("building has no cancellable job")]
+    NothingToCancel,
 }
 
 /// A player's city.
@@ -68,7 +102,34 @@ impl City {
 
     /// Lazily accrue production up to `now` (Unix seconds), retaining fractions.
     /// Backwards clocks cannot repeat income. A legacy city starts accounting now.
-    pub fn collect(&mut self, now: u64, data: &GameData) {
+    pub fn collect(&mut self, now: u64, data: &GameData) -> bool {
+        let target = now.max(self.as_of.unwrap_or(now));
+        let mut completed = false;
+        while let Some(deadline) = self
+            .buildings
+            .iter()
+            .filter_map(|b| b.upgrade.as_ref().map(|u| u.completes_at))
+            .filter(|t| *t <= target)
+            .min()
+        {
+            self.accrue(deadline, data);
+            for building in &mut self.buildings {
+                if building
+                    .upgrade
+                    .as_ref()
+                    .is_some_and(|u| u.completes_at <= deadline)
+                {
+                    building.level = building.level.saturating_add(1);
+                    building.upgrade = None;
+                    completed = true;
+                }
+            }
+        }
+        self.accrue(target, data);
+        completed
+    }
+
+    fn accrue(&mut self, now: u64, data: &GameData) {
         let previous = self.as_of.unwrap_or(now);
         let elapsed = now.saturating_sub(previous);
         self.as_of = Some(previous.max(now));
@@ -90,6 +151,109 @@ impl City {
         self.resources = Resources::from_values(stored);
     }
 
+    /// Reserve a free builder and atomically pay the next-level cost.
+    pub fn upgrade_building(
+        &mut self,
+        building_id: u32,
+        now: u64,
+        data: &GameData,
+    ) -> Result<(), CityError> {
+        self.collect(now, data);
+        let now = self.as_of.unwrap_or(now);
+        let index = self
+            .buildings
+            .iter()
+            .position(|b| b.id == building_id)
+            .ok_or(CityError::UnknownBuilding)?;
+        let building = &self.buildings[index];
+        let def = data
+            .building(&building.kind)
+            .ok_or(CityError::UnknownBuilding)?;
+        if building.upgrade.is_some() {
+            return Err(CityError::Busy);
+        }
+        if building.level >= def.max_level {
+            return Err(CityError::MaxLevel);
+        }
+        let target = building.level + 1;
+        if building.kind != "city_hall" && target > self.city_hall_level() {
+            return Err(CityError::CityHallRequired);
+        }
+        for requirement in &def.upgrade_requirements {
+            let level = target.saturating_sub(requirement.levels_below_target);
+            if level > 0
+                && !self
+                    .buildings
+                    .iter()
+                    .any(|b| b.kind == requirement.kind && b.level >= level)
+            {
+                return Err(CityError::Prerequisite);
+            }
+        }
+        let (remaining, upgrade) = self.prepare_job(def, target, now, data)?;
+        self.resources = remaining;
+        self.buildings[index].upgrade = Some(upgrade);
+        Ok(())
+    }
+
+    fn prepare_job(
+        &self,
+        def: &data::BuildingDef,
+        target: u32,
+        now: u64,
+        data: &GameData,
+    ) -> Result<(Resources, Upgrade), CityError> {
+        if self
+            .buildings
+            .iter()
+            .filter(|b| b.upgrade.is_some())
+            .count()
+            >= data.construction.builder_slots as usize
+        {
+            return Err(CityError::BuildersBusy);
+        }
+        let cost = def.cost_for_level(target);
+        let owned = self.resources.values();
+        let price = cost.values();
+        if owned.iter().zip(price).any(|(a, b)| *a < b) {
+            return Err(CityError::InsufficientResources);
+        }
+        let completes_at = now
+            .checked_add(def.time_for_level(target))
+            .ok_or(CityError::TimeOverflow)?;
+        Ok((
+            Resources::from_values(std::array::from_fn(|i| owned[i] - price[i])),
+            Upgrade {
+                started_at: now,
+                completes_at,
+                paid: cost,
+            },
+        ))
+    }
+
+    /// Cancel an unfinished job, refunding the YAML-configured share of paid cost.
+    pub fn cancel_upgrade(
+        &mut self,
+        building_id: u32,
+        now: u64,
+        data: &GameData,
+    ) -> Result<(), CityError> {
+        self.collect(now, data);
+        let building = self
+            .buildings
+            .iter_mut()
+            .find(|b| b.id == building_id)
+            .ok_or(CityError::UnknownBuilding)?;
+        let upgrade = building.upgrade.take().ok_or(CityError::NothingToCancel)?;
+        let paid = upgrade.paid.values();
+        let refund = Resources::from_values(std::array::from_fn(|i| {
+            (u128::from(paid[i]) * u128::from(data.construction.cancellation_refund_percent) / 100)
+                as u64
+        }));
+        self.resources = self.resources.saturating_add(refund);
+        Ok(())
+    }
+
     pub fn city_hall_level(&self) -> u32 {
         self.buildings
             .iter()
@@ -106,6 +270,7 @@ impl City {
             level,
             x,
             y,
+            upgrade: None,
         });
         id
     }
@@ -185,5 +350,139 @@ mod tests {
         city.resources = Resources::default();
         city.collect(3700, &data);
         assert_eq!(city.resources.food, 1500);
+    }
+    #[test]
+    fn upgrades_validate_identity_max_level_hall_and_prerequisites() {
+        let (data, mut city) = fixture();
+        assert_eq!(
+            city.upgrade_building(999, 100, &data),
+            Err(CityError::UnknownBuilding)
+        );
+        assert_eq!(
+            city.upgrade_building(2, 100, &data),
+            Err(CityError::CityHallRequired)
+        );
+        city.buildings[0].level = 2;
+        assert_eq!(
+            city.upgrade_building(1, 100, &data),
+            Err(CityError::Prerequisite)
+        );
+        city.buildings[1].level = 25;
+        assert_eq!(
+            city.upgrade_building(2, 100, &data),
+            Err(CityError::MaxLevel)
+        );
+        city.buildings[0].level = 25;
+        assert_eq!(
+            city.upgrade_building(1, 100, &data),
+            Err(CityError::MaxLevel)
+        );
+    }
+    #[test]
+    fn failed_cost_and_timer_validation_do_not_partially_mutate() {
+        let (data, mut city) = fixture();
+        city.resources = Resources::default();
+        let before = city.clone();
+        assert_eq!(
+            city.upgrade_building(1, 100, &data),
+            Err(CityError::InsufficientResources)
+        );
+        assert_eq!(city, before);
+        city.collect(u64::MAX, &data);
+        let before = city.clone();
+        assert_eq!(
+            city.upgrade_building(1, u64::MAX, &data),
+            Err(CityError::TimeOverflow)
+        );
+        assert_eq!(city, before);
+    }
+    #[test]
+    fn two_builders_and_duplicate_job_checks_are_atomic() {
+        let (data, mut city) = fixture();
+        city.buildings[0].level = 2;
+        city.upgrade_building(2, 100, &data).unwrap();
+        city.upgrade_building(3, 100, &data).unwrap();
+        let before = city.clone();
+        assert_eq!(city.upgrade_building(2, 100, &data), Err(CityError::Busy));
+        assert_eq!(
+            city.upgrade_building(4, 100, &data),
+            Err(CityError::BuildersBusy)
+        );
+        assert_eq!(city, before);
+        city.cancel_upgrade(2, 100, &data).unwrap();
+        assert_eq!(city.resources.wood, data.start.resources.wood);
+        city.upgrade_building(4, 100, &data).unwrap();
+    }
+    #[test]
+    fn exact_completion_deadline_and_cancellation_refund() {
+        let (data, mut city) = fixture();
+        let before = city.resources;
+        city.upgrade_building(1, 100, &data).unwrap();
+        assert_eq!(city.resources.food, before.food - 300);
+        assert_eq!(
+            city.buildings[0].upgrade.as_ref().unwrap().completes_at,
+            220
+        );
+        assert!(!city.collect(219, &data));
+        assert_eq!(city.city_hall_level(), 1);
+        assert!(city.collect(220, &data));
+        assert_eq!(city.city_hall_level(), 2);
+        assert!(!city.collect(221, &data));
+        assert_eq!(
+            city.cancel_upgrade(1, 220, &data),
+            Err(CityError::NothingToCancel)
+        );
+        assert_eq!(
+            city.cancel_upgrade(999, 220, &data),
+            Err(CityError::UnknownBuilding)
+        );
+        let (_, mut cancelled) = fixture();
+        cancelled.upgrade_building(1, 100, &data).unwrap();
+        cancelled.cancel_upgrade(1, 100, &data).unwrap();
+        assert_eq!(cancelled.resources, before);
+        assert!(cancelled.buildings[0].upgrade.is_none());
+        assert_eq!(
+            cancelled.cancel_upgrade(1, 100, &data),
+            Err(CityError::NothingToCancel)
+        );
+    }
+    #[test]
+    fn refunds_preserve_recorded_cost_even_over_capacity() {
+        let (data, mut city) = fixture();
+        city.upgrade_building(1, 100, &data).unwrap();
+        city.resources = city.capacity(&data);
+        let before = city.resources;
+        city.cancel_upgrade(1, 100, &data).unwrap();
+        assert_eq!(city.resources.food, before.food + 300);
+        city.collect(200, &data);
+        assert_eq!(city.resources.food, before.food + 300);
+    }
+    #[test]
+    fn offline_completion_splits_income_at_job_boundaries() {
+        let (data, mut once) = fixture();
+        once.buildings[0].level = 2;
+        once.upgrade_building(2, 100, &data).unwrap();
+        once.upgrade_building(3, 100, &data).unwrap();
+        let mut frequent = once.clone();
+        assert!(once.collect(220, &data));
+        for now in 101..=220 {
+            frequent.collect(now, &data);
+        }
+        assert_eq!(once, frequent);
+        assert_eq!(once.resources.food, 945);
+        assert_eq!(once.resources.wood, 945);
+        assert_eq!(once.rates_per_hour(&data).food, 900);
+        assert!(once.buildings.iter().all(|b| b.upgrade.is_none()));
+    }
+    #[test]
+    fn backwards_clock_cannot_backdate_an_upgrade() {
+        let (data, mut city) = fixture();
+        city.collect(200, &data);
+        city.upgrade_building(1, 150, &data).unwrap();
+        assert_eq!(city.buildings[0].upgrade.as_ref().unwrap().started_at, 200);
+        assert_eq!(
+            city.buildings[0].upgrade.as_ref().unwrap().completes_at,
+            320
+        );
     }
 }
