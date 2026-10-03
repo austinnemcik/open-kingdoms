@@ -86,6 +86,7 @@ pub enum ErrorCode {
     AlreadyLoggedIn,
     InvalidName,
     InvalidCredentials,
+    RateLimited,
     Internal,
     InvalidAction,
 }

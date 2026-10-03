@@ -352,6 +352,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unknown_persisted_kind_is_safe_for_production_and_rejected_for_actions() {
+        let (data, mut city) = fixture();
+        city.buildings[1].kind = "removed_kind".into();
+        city.collect(3700, &data);
+        assert_eq!(city.resources.food, 1000);
+        assert_eq!(
+            city.upgrade_building(2, 3700, &data),
+            Err(CityError::UnknownBuilding)
+        );
+        assert_eq!(
+            city.build_building("farm", 0, 0, 3700, &data),
+            Err(CityError::UnknownBuilding)
+        );
+    }
+    #[test]
     fn starting_city_matches_start_yaml() {
         let data = GameData::load(GameData::repo_data_dir()).unwrap();
         let city = City::new_starting(&data, 123);

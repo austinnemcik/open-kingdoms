@@ -4,6 +4,7 @@
 //! applies every one of them through the pure rules in `game-core`.
 
 pub mod clock;
+mod security;
 mod session;
 mod state;
 pub mod store;
@@ -12,9 +13,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
-use axum::extract::State;
 use axum::extract::ws::WebSocketUpgrade;
-use axum::response::Response;
+use axum::extract::{ConnectInfo, State};
+use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use data::GameData;
 use tokio::net::TcpListener;
@@ -29,10 +30,17 @@ pub fn router(kingdom: Arc<Kingdom>) -> Router {
         .with_state(kingdom)
 }
 
-async fn ws_handler(ws: WebSocketUpgrade, State(kingdom): State<Arc<Kingdom>>) -> Response {
+async fn ws_handler(
+    ws: WebSocketUpgrade,
+    State(kingdom): State<Arc<Kingdom>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> Response {
+    let Some(permit) = kingdom.security.connect(addr.ip(), &kingdom.data.limits) else {
+        return axum::http::StatusCode::TOO_MANY_REQUESTS.into_response();
+    };
     ws.max_message_size(4096)
         .max_frame_size(4096)
-        .on_upgrade(move |socket| session::run(socket, kingdom))
+        .on_upgrade(move |socket| session::run(socket, kingdom, addr.ip(), permit))
 }
 
 /// Bind `addr` and serve until the process is stopped. Reports the bound
@@ -56,7 +64,7 @@ pub async fn serve_kingdom(
     on_bound(listener.local_addr()?);
     // Both futures belong to this serve call: cancelling it also drops the ticker.
     tokio::select! {
-        result = axum::serve(listener, router(kingdom.clone())) => { result?; }
+        result = axum::serve(listener, router(kingdom.clone()).into_make_service_with_connect_info::<SocketAddr>()) => { result?; }
         () = tick_loop(kingdom) => {}
     }
     Ok(())

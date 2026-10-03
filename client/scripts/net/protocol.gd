@@ -7,6 +7,7 @@ class_name Protocol
 # Buildings carry state (ready/upgrading/under_construction), started_at and completes_at (nullable Unix seconds).
 # city_update carries the same full city as city_state; builder_slots is free capacity.
 # and as_of (Unix seconds), plus size and buildings. Production is server-owned.
+# Errors may include rate_limited when authentication budgets are exhausted.
 const VERSION := 2
 
 
