@@ -1,5 +1,9 @@
+use crate::clock::{Clock, RealClock};
 use crate::store::{SqliteStore, Store, StoreError};
-use std::sync::Mutex;
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -13,6 +17,8 @@ use rand::{RngCore, rngs::OsRng};
 pub struct Kingdom {
     pub data: GameData,
     store: Mutex<Box<dyn Store>>,
+    clock: Arc<dyn Clock>,
+    last_tick: AtomicU64,
 }
 
 impl Kingdom {
@@ -26,10 +32,32 @@ impl Kingdom {
 
     /// Inject an already migrated store. Storage methods run on blocking workers.
     pub fn with_store(data: GameData, store: Box<dyn Store>) -> Self {
+        Self::with_clock(data, store, Arc::new(RealClock))
+    }
+
+    /// Inject storage and time independently for deterministic server tests.
+    pub fn with_clock(data: GameData, store: Box<dyn Store>, clock: Arc<dyn Clock>) -> Self {
         Self {
             data,
             store: Mutex::new(store),
+            clock,
+            last_tick: AtomicU64::new(0),
         }
+    }
+
+    /// Current game time in Unix seconds.
+    pub fn now(&self) -> u64 {
+        self.clock.now()
+    }
+
+    /// Execute one server tick. Timer processing is added here as rules land.
+    pub fn tick(&self) {
+        self.last_tick.store(self.now(), Ordering::SeqCst);
+    }
+
+    /// Timestamp of the most recent completed server tick, for health/tests.
+    pub fn last_tick(&self) -> u64 {
+        self.last_tick.load(Ordering::SeqCst)
     }
 
     /// Verify credentials with Argon2id, registering only previously unused names.
@@ -53,7 +81,7 @@ impl Kingdom {
                 .map_err(|_| ErrorCode::Internal)?
                 .to_string();
             store
-                .register(name, &hash, &City::new_starting(&self.data))
+                .register(name, &hash, &City::new_starting(&self.data, self.now()))
                 .map_err(|_| ErrorCode::Internal)?
         };
         let mut bytes = [0; 32];

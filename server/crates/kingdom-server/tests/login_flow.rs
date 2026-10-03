@@ -221,3 +221,37 @@ async fn password_session_and_city_survive_process_restart() {
     );
     assert_eq!(resumed.request(r#"{"type":"get_city"}"#).await, city);
 }
+
+#[tokio::test]
+async fn injected_clock_drives_the_one_second_tick() {
+    use kingdom_server::{Kingdom, clock::ManualClock, store::SqliteStore};
+    use std::sync::Arc;
+    let clock = Arc::new(ManualClock::new(100));
+    let kingdom = Arc::new(Kingdom::with_clock(
+        GameData::load(GameData::repo_data_dir()).unwrap(),
+        Box::new(SqliteStore::open(":memory:").unwrap()),
+        clock.clone(),
+    ));
+    let (tx, rx) = oneshot::channel();
+    let task = tokio::spawn(kingdom_server::serve_kingdom(
+        "127.0.0.1:0".parse().unwrap(),
+        kingdom.clone(),
+        move |addr| {
+            let _ = tx.send(addr);
+        },
+    ));
+    let mut client = Client::connect(rx.await.unwrap()).await;
+    assert!(matches!(client.hello().await, ServerMsg::Welcome { .. }));
+    for expected in [100, 250] {
+        clock.set(expected);
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            while kingdom.last_tick() != expected {
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+    }
+    task.abort();
+    let _ = task.await;
+}

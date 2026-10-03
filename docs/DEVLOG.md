@@ -40,3 +40,12 @@ ID, what changed, and anything the next run should know.
 - Tests cover migrations, duplicate registration, foreign keys, city writes, and
   real binary restart with password login and token resume. E2e uses :memory: so
   verification never modifies a developer's persistent kingdom.
+
+## 2026-10-03 - P1-03 Clock
+
+- Added injected Clock, RealClock and ManualClock; all game timestamps are Unix
+  seconds. Starting cities receive explicit time, persisted with a legacy default.
+- Server lifetime owns a one-second tick loop with missed-tick skipping; tick work
+  runs off-runtime and stops with the server. It is the hook for timer completion.
+- Unit tests check clock semantics and city timestamps; a WebSocket integration
+  test verifies a manual clock drives successive real server ticks.

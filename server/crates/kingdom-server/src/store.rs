@@ -132,7 +132,7 @@ mod tests {
         let path = temp.path().join("kingdom.db");
         let mut store = SqliteStore::open(&path).unwrap();
         let data = data::GameData::load(data::GameData::repo_data_dir()).unwrap();
-        let mut city = City::new_starting(&data);
+        let mut city = City::new_starting(&data, 123);
         let id = store.register("alice", "hash", &city).unwrap();
         assert!(store.register("alice", "other", &city).is_err());
         assert_eq!(store.player_ids().unwrap(), vec![id]);

@@ -71,3 +71,11 @@ levels 1, 6, 11, 16, 21).
 
 "Open Kingdoms". It's a placeholder and easy to rename (`client/project.godot`,
 README, login screen).
+
+## Game time
+
+All server/core timestamps are unsigned Unix seconds. Data durations use seconds;
+resource rates use units per hour. The server injects a Clock (wall clock in
+production, manual clock in tests) and calls pure rules with explicit `now`.
+A one-second tick processes timers; lazy access handles offline progress. Clock
+corrections must not reverse accounted time or grant the same production twice.
