@@ -154,3 +154,70 @@ async fn wrong_password_resume_and_failure_limit() {
         ServerMsg::error(ErrorCode::InvalidCredentials, "invalid credentials")
     );
 }
+
+struct ServerProcess(std::process::Child);
+impl Drop for ServerProcess {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+async fn start_persistent(path: &std::path::Path) -> (ServerProcess, SocketAddr) {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    drop(listener);
+    let child = std::process::Command::new(env!("CARGO_BIN_EXE_kingdom-server"))
+        .env("ROK_ADDR", addr.to_string())
+        .env("ROK_DB", path)
+        .env("ROK_DATA_DIR", GameData::repo_data_dir())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let process = ServerProcess(child);
+    for _ in 0..100 {
+        if tokio::net::TcpStream::connect(addr).await.is_ok() {
+            return (process, addr);
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+    panic!("server did not start");
+}
+
+#[tokio::test]
+async fn password_session_and_city_survive_process_restart() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("kingdom.db");
+    let (process, addr) = start_persistent(&db).await;
+    let mut c = Client::connect(addr).await;
+    c.hello().await;
+    let ServerMsg::LoggedIn {
+        player_id, token, ..
+    } = c
+        .request(r#"{"type":"login","name":"persisted","password":"password123"}"#)
+        .await
+    else {
+        panic!()
+    };
+    let city = c.request(r#"{"type":"get_city"}"#).await;
+    drop(c);
+    drop(process);
+    let (_process, addr) = start_persistent(&db).await;
+    let mut c = Client::connect(addr).await;
+    c.hello().await;
+    assert_eq!(
+        c.request(r#"{"type":"login","name":"persisted","password":"wrongpass"}"#)
+            .await,
+        ServerMsg::error(ErrorCode::InvalidCredentials, "invalid credentials")
+    );
+    assert!(
+        matches!(c.request(r#"{"type":"login","name":"persisted","password":"password123"}"#).await, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id)
+    );
+    assert_eq!(c.request(r#"{"type":"get_city"}"#).await, city);
+    let mut resumed = Client::connect(addr).await;
+    resumed.hello().await;
+    assert!(
+        matches!(resumed.request(&serde_json::json!({"type":"resume","token":token}).to_string()).await, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id)
+    );
+    assert_eq!(resumed.request(r#"{"type":"get_city"}"#).await, city);
+}

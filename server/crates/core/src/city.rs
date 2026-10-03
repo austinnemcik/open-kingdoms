@@ -1,7 +1,7 @@
 use data::{GameData, Resources};
 
 /// A building placed in a city.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Building {
     /// Unique within its city.
     pub id: u32,
@@ -12,7 +12,7 @@ pub struct Building {
 }
 
 /// A player's city.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct City {
     pub size: u32,
     pub resources: Resources,

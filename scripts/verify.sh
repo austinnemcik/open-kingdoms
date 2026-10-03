@@ -52,7 +52,7 @@ verify_client() {
   local port=$((20000 + RANDOM % 20000))
   local bin="$ROOT/server/target/debug/kingdom-server"
   [[ -x "$bin.exe" ]] && bin="$bin.exe"
-  ROK_ADDR="127.0.0.1:$port" RUST_LOG=warn "$bin" &
+  ROK_DB=":memory:" ROK_ADDR="127.0.0.1:$port" RUST_LOG=warn "$bin" &
   local server_pid=$!
   trap 'kill $server_pid 2>/dev/null || true' RETURN
   for _ in $(seq 50); do
