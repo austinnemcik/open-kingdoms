@@ -13,11 +13,27 @@ const DEFAULT_URL := "ws://127.0.0.1:7777/ws"
 var _socket := WebSocketPeer.new()
 var _last_state := WebSocketPeer.STATE_CLOSED
 var _pending_login := ""
+var _pending_password := ""
+var _resume_token := ""
+var session_token := ""
 
 
 ## Connect and log in as `player_name`; progress is reported via signals.
-func login(player_name: String, url: String = DEFAULT_URL) -> void:
+func login(player_name: String, password: String, url: String = DEFAULT_URL) -> void:
 	_pending_login = player_name
+	_pending_password = password
+	_resume_token = ""
+	_connect(url)
+
+
+## Reconnect using an in-memory bearer token.
+func resume(token: String, url: String = DEFAULT_URL) -> void:
+	_pending_password = ""
+	_resume_token = token
+	_connect(url)
+
+
+func _connect(url: String) -> void:
 	_socket = WebSocketPeer.new()
 	_last_state = WebSocketPeer.STATE_CLOSED
 	var err := _socket.connect_to_url(url)
@@ -55,8 +71,10 @@ func _process(_delta: float) -> void:
 func _handle(msg: Dictionary) -> void:
 	match msg.type:
 		"welcome":
-			send(Protocol.login(_pending_login))
+			send(Protocol.resume(_resume_token) if not _resume_token.is_empty() else Protocol.login(_pending_login, _pending_password))
+			_pending_password = ""
 		"logged_in":
+			session_token = msg.token
 			logged_in.emit(int(msg.player_id), msg.name)
 			send(Protocol.get_city())
 		"city_state":

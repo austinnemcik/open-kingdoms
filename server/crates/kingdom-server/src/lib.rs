@@ -28,7 +28,9 @@ pub fn router(kingdom: Arc<Kingdom>) -> Router {
 }
 
 async fn ws_handler(ws: WebSocketUpgrade, State(kingdom): State<Arc<Kingdom>>) -> Response {
-    ws.on_upgrade(move |socket| session::run(socket, kingdom))
+    ws.max_message_size(4096)
+        .max_frame_size(4096)
+        .on_upgrade(move |socket| session::run(socket, kingdom))
 }
 
 /// Bind `addr` and serve until the process is stopped. Reports the bound

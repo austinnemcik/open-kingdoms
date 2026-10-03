@@ -18,3 +18,14 @@ ID, what changed, and anything the next run should know.
   (tests) call it before the node enters the tree.
 - Note: in this environment, Bash heredocs containing apostrophes sometimes fail
   to parse. Write files with the Write tool instead.
+
+## 2026-10-03 ? P1-01 Authentication
+
+- Protocol v2 requires 8?128 Unicode characters in passwords; new names register
+  with randomly salted Argon2id hashes and existing names use constant-time hash verification.
+- Random 32-byte base64url bearer tokens resume sessions. Tokens live in memory
+  until persistence lands; use TLS at the deployment proxy to protect credentials.
+- Hashing runs on blocking workers; pre-auth failures disconnect after five attempts,
+  and WebSocket frames/messages are bounded to 4 KiB. Password fields are secret and
+  cleared after submission; client tokens are retained only in memory.
+- Added password boundary, hash, token, reconnect and WebSocket failure-limit tests.

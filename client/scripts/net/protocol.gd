@@ -3,7 +3,7 @@ class_name Protocol
 ## snake_case "type" field. Keep in sync with the Rust crate and bump VERSION
 ## together with PROTOCOL_VERSION on breaking changes.
 
-const VERSION := 1
+const VERSION := 2
 
 
 static func encode(msg: Dictionary) -> String:
@@ -27,9 +27,13 @@ static func hello() -> Dictionary:
 	return {"type": "hello", "protocol": VERSION}
 
 
-static func login(player_name: String) -> Dictionary:
-	return {"type": "login", "name": player_name}
+static func login(player_name: String, password: String) -> Dictionary:
+	return {"type": "login", "name": player_name, "password": password}
 
 
 static func get_city() -> Dictionary:
 	return {"type": "get_city"}
+
+
+static func resume(token: String) -> Dictionary:
+	return {"type": "resume", "token": token}

@@ -58,7 +58,9 @@ async fn hello_login_and_fetch_city() {
     let welcome = c.hello().await;
     assert!(matches!(welcome, ServerMsg::Welcome { .. }), "{welcome:?}");
 
-    let logged_in = c.request(r#"{"type":"login","name":"alice"}"#).await;
+    let logged_in = c
+        .request(r#"{"type":"login","name":"alice","password":"password123"}"#)
+        .await;
     let ServerMsg::LoggedIn { player_id, .. } = logged_in else {
         panic!("expected logged_in, got {logged_in:?}");
     };
@@ -71,7 +73,9 @@ async fn hello_login_and_fetch_city() {
     // Reconnecting with the same name returns the same player.
     let mut c2 = Client::connect(addr).await;
     c2.hello().await;
-    let again = c2.request(r#"{"type":"login","name":"alice"}"#).await;
+    let again = c2
+        .request(r#"{"type":"login","name":"alice","password":"password123"}"#)
+        .await;
     assert!(matches!(again, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id));
 }
 
@@ -111,4 +115,42 @@ async fn wrong_protocol_version_is_rejected() {
             ..
         }
     ));
+}
+
+#[tokio::test]
+async fn wrong_password_resume_and_failure_limit() {
+    let addr = start_server().await;
+    let mut c = Client::connect(addr).await;
+    c.hello().await;
+    let ServerMsg::LoggedIn {
+        player_id, token, ..
+    } = c
+        .request(r#"{"type":"login","name":"alice","password":"password123"}"#)
+        .await
+    else {
+        panic!()
+    };
+    let mut resumed = Client::connect(addr).await;
+    resumed.hello().await;
+    assert!(
+        matches!(resumed.request(&serde_json::json!({"type":"resume","token":token}).to_string()).await, ServerMsg::LoggedIn { player_id: p, .. } if p == player_id)
+    );
+    let mut bad = Client::connect(addr).await;
+    bad.hello().await;
+    for _ in 0..5 {
+        assert_eq!(
+            bad.request(r#"{"type":"login","name":"alice","password":"incorrect"}"#)
+                .await,
+            ServerMsg::error(ErrorCode::InvalidCredentials, "invalid credentials")
+        );
+    }
+    assert!(matches!(bad.ws.next().await, Some(Ok(Message::Close(_)))));
+    let mut forged = Client::connect(addr).await;
+    forged.hello().await;
+    assert_eq!(
+        forged
+            .request(r#"{"type":"resume","token":"forged"}"#)
+            .await,
+        ServerMsg::error(ErrorCode::InvalidCredentials, "invalid credentials")
+    );
 }

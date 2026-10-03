@@ -21,7 +21,7 @@ Task IDs are stable; reference them in branch names (`task/p1-03-...`) and in DE
 
 Goal: one player can grow a city from City Hall 1 to 10 by playing.
 
-- [ ] P1-01 Authentication: name + password at registration (argon2 hash), session token for reconnects. Reject logins with the wrong password.
+- [x] P1-01 Authentication: name + password at registration (argon2 hash), session token for reconnects. Reject logins with the wrong password.
 - [ ] P1-02 Persistence: SQLite (sqlx or rusqlite, migrations in-repo) behind a `Store` trait; players and cities survive a server restart. Integration test restarts the server.
 - [ ] P1-03 Server clock + game time: inject a `Clock` trait so core/server code and tests control time; add a 1s server tick task.
 - [ ] P1-04 Resource production: per-level production and capacity in `data/buildings.yaml`; `City::collect(now)` in core (lazy, capped by storage); server sends resources with timestamps so the client can interpolate.

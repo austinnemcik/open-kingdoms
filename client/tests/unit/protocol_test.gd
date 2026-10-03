@@ -2,7 +2,7 @@ extends TestCase
 
 
 func test_encode_decode_round_trip() -> void:
-	var msg := Protocol.login("alice")
+	var msg := Protocol.login("alice", "password123")
 	assert_eq(Protocol.decode(Protocol.encode(msg)), msg)
 
 
@@ -14,3 +14,8 @@ func test_decode_rejects_non_messages() -> void:
 	assert_eq(Protocol.decode("not json"), {}, "garbage")
 	assert_eq(Protocol.decode("[1, 2]"), {}, "array")
 	assert_eq(Protocol.decode("{\"no_type\": 1}"), {}, "missing type")
+
+
+func test_authentication_shapes() -> void:
+	assert_eq(Protocol.login("alice", "password123"), {"type": "login", "name": "alice", "password": "password123"})
+	assert_eq(Protocol.resume("token"), {"type": "resume", "token": "token"})
