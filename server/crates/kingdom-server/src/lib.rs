@@ -10,15 +10,19 @@ mod state;
 pub mod store;
 
 use std::net::SocketAddr;
+use std::path::Path;
 use std::sync::Arc;
 
 use axum::Router;
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::{ConnectInfo, State};
+use axum::http::{HeaderName, HeaderValue};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use data::GameData;
 use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
+use tower_http::set_header::SetResponseHeaderLayer;
 
 pub use state::Kingdom;
 
@@ -28,6 +32,21 @@ pub fn router(kingdom: Arc<Kingdom>) -> Router {
         .route("/ws", get(ws_handler))
         .route("/health", get(|| async { "ok" }))
         .with_state(kingdom)
+}
+
+/// Add the exported web client without shadowing `/ws` or `/health`.
+/// The directory must contain only public build output. Unknown paths stay 404.
+pub fn router_with_web(kingdom: Arc<Kingdom>, web_dir: &Path) -> Router {
+    router(kingdom)
+        .fallback_service(ServeDir::new(web_dir))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("cross-origin-opener-policy"),
+            HeaderValue::from_static("same-origin"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("cross-origin-embedder-policy"),
+            HeaderValue::from_static("require-corp"),
+        ))
 }
 
 async fn ws_handler(
@@ -60,11 +79,25 @@ pub async fn serve_kingdom(
     kingdom: Arc<Kingdom>,
     on_bound: impl FnOnce(SocketAddr),
 ) -> anyhow::Result<()> {
+    serve_kingdom_with_web(addr, kingdom, None, on_bound).await
+}
+
+/// Serve an injected kingdom with an optional directory of public web assets.
+pub async fn serve_kingdom_with_web(
+    addr: SocketAddr,
+    kingdom: Arc<Kingdom>,
+    web_dir: Option<&Path>,
+    on_bound: impl FnOnce(SocketAddr),
+) -> anyhow::Result<()> {
+    let app = match web_dir {
+        Some(dir) => router_with_web(kingdom.clone(), dir),
+        None => router(kingdom.clone()),
+    };
     let listener = TcpListener::bind(addr).await?;
     on_bound(listener.local_addr()?);
     // Both futures belong to this serve call: cancelling it also drops the ticker.
     tokio::select! {
-        result = axum::serve(listener, router(kingdom.clone()).into_make_service_with_connect_info::<SocketAddr>()) => { result?; }
+        result = axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()) => { result?; }
         () = tick_loop(kingdom) => {}
     }
     Ok(())

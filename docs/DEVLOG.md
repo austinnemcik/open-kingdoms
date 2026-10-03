@@ -182,3 +182,35 @@ ID, what changed, and anything the next run should know.
   operational proxy deployments currently count the TCP peer, not forwarded IPs.
 - Added pure token-bucket/unknown-kind tests, lock/race/atomic read tests, migration
   tests, and WebSocket timeout, cap, shared-budget and Internal-error regressions.
+
+## 2026-10-03 - P1-15 Web export
+
+- Added a single-threaded Web preset using the existing web Compatibility
+  renderer override and `scripts/export_web.sh`; output lives in ignored
+  `build/web`. CI installs the matching 4.8-dev6 templates (directory from
+  `version.txt`) and uploads the `open-kingdoms-web` artifact.
+- `ROK_WEB_DIR` enables static hosting at `/` alongside unchanged `/health`
+  and `/ws` routes. ServeDir streams assets with MIME types, including
+  `application/wasm` and `application/octet-stream` for `.pck`, plus COOP
+  `same-origin` and COEP `require-corp`. Missing files remain 404. Temp-dir
+  integration tests cover content, MIME, isolation headers, HEAD, traversal
+  rejection, API precedence and opt-in hosting. No state/session changes.
+- Browser defaults derive `ws`/`wss`, host and port from JavaScriptBridge page
+  location; desktop keeps localhost:7777 and explicit overrides still work.
+  Pure URL tests include HTTPS, custom ports, IPv6 and missing location.
+- Removed a pre-existing BOM from login.tscn that prevented main-scene parsing;
+  added a scene-loading regression test (the previous e2e bypassed login UI).
+- Verified full `bash scripts/verify.sh`, release export, and a live server on
+  127.0.0.1:18777 with ROK_WEB_DIR. Curl GETs of `/` and `/index.wasm` returned
+  200 with correct MIME and both isolation headers. Chromium browser automation
+  confirmed crossOriginIsolated=true, the derived non-default WebSocket port,
+  registration/login and the rendered city: `docs/screenshots/city_web.png`.
+  Browser console and native Compatibility city screenshot had no errors.
+- README documents browser play, template installation and HTTPS proxy hosting.
+  Templates on this machine originally contained only Windows binaries; web
+  templates are now installed in `%APPDATA%/Godot/export_templates/4.8.dev6`.
+  First web load currently downloads about 50 MiB uncompressed; compression
+  and asset optimization are future work. P1-16 remains gated on P1-R1.
+- Rebased on merged P1-H1, retaining peer-address injection and connection
+  admission checks in both API-only and web-hosting modes. Added a live TCP
+  WebSocket handshake test with static hosting enabled to protect that wiring.

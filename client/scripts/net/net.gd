@@ -19,7 +19,7 @@ var session_token := ""
 
 
 ## Connect and log in as `player_name`; progress is reported via signals.
-func login(player_name: String, password: String, url: String = DEFAULT_URL) -> void:
+func login(player_name: String, password: String, url: String = "") -> void:
 	_pending_login = player_name
 	_pending_password = password
 	_resume_token = ""
@@ -27,13 +27,32 @@ func login(player_name: String, password: String, url: String = DEFAULT_URL) -> 
 
 
 ## Reconnect using an in-memory bearer token.
-func resume(token: String, url: String = DEFAULT_URL) -> void:
+func resume(token: String, url: String = "") -> void:
 	_pending_password = ""
 	_resume_token = token
 	_connect(url)
 
 
+## Browser location.host includes the port and brackets around IPv6 addresses.
+## Pure function: location paths, query strings and fragments never enter /ws.
+static func url_from_location(protocol: String, host: String) -> String:
+	if host.is_empty() or protocol not in ["http:", "https:"]:
+		return DEFAULT_URL
+	return ("wss://" if protocol == "https:" else "ws://") + host + "/ws"
+
+
+## Web connects to its page origin; native builds retain the local server default.
+func default_url() -> String:
+	if OS.has_feature("web"):
+		var protocol: String = JavaScriptBridge.eval("window.location.protocol")
+		var host: String = JavaScriptBridge.eval("window.location.host")
+		return url_from_location(protocol, host)
+	return DEFAULT_URL
+
+
 func _connect(url: String) -> void:
+	if url.is_empty():
+		url = default_url()
 	_socket = WebSocketPeer.new()
 	_last_state = WebSocketPeer.STATE_CLOSED
 	var err := _socket.connect_to_url(url)
