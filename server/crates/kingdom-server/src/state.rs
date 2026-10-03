@@ -9,9 +9,10 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_ha
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use data::GameData;
 use game_core::{City, PlayerId};
-use protocol::{BuildingView, CityView, ResourcesView};
+use protocol::{BuildingState, BuildingView, CityView, ResourcesView};
 use protocol::{ErrorCode, ServerMsg};
 use rand::{RngCore, rngs::OsRng};
+use tokio::sync::broadcast;
 
 /// Authoritative state backed by a serialized persistence connection.
 pub struct Kingdom {
@@ -19,6 +20,7 @@ pub struct Kingdom {
     store: Mutex<Box<dyn Store>>,
     clock: Arc<dyn Clock>,
     last_tick: AtomicU64,
+    updates: broadcast::Sender<(PlayerId, CityView)>,
 }
 
 impl Kingdom {
@@ -42,6 +44,7 @@ impl Kingdom {
             store: Mutex::new(store),
             clock,
             last_tick: AtomicU64::new(0),
+            updates: broadcast::channel(64).0,
         }
     }
 
@@ -50,9 +53,55 @@ impl Kingdom {
         self.clock.now()
     }
 
-    /// Execute one server tick. Timer processing is added here as rules land.
-    pub fn tick(&self) {
-        self.last_tick.store(self.now(), Ordering::SeqCst);
+    /// Subscribe to persisted city changes; sessions filter by authenticated owner.
+    pub fn subscribe(&self) -> broadcast::Receiver<(PlayerId, CityView)> {
+        self.updates.subscribe()
+    }
+
+    /// Complete due jobs and persist them before notifying connected owners.
+    pub fn tick(&self) -> Result<(), ErrorCode> {
+        let now = self.now();
+        let store = self.store.lock().map_err(|_| ErrorCode::Internal)?;
+        for player in store.player_ids().map_err(|_| ErrorCode::Internal)? {
+            let Some(mut city) = store.city(player).map_err(|_| ErrorCode::Internal)? else {
+                continue;
+            };
+            if city
+                .buildings
+                .iter()
+                .any(|b| b.upgrade.as_ref().is_some_and(|u| u.completes_at <= now))
+            {
+                city.collect(now, &self.data);
+                store
+                    .save_city(player, &city)
+                    .map_err(|_| ErrorCode::Internal)?;
+                let _ = self.updates.send((player, self.to_view(&city)));
+            }
+        }
+        self.last_tick.store(now, Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// Apply a pure rule while holding the storage lock; publish only after commit.
+    pub fn change_city(
+        &self,
+        player: PlayerId,
+        action: impl FnOnce(&mut City, u64, &GameData) -> Result<(), game_core::CityError>,
+    ) -> Result<(), (ErrorCode, String)> {
+        let internal = || (ErrorCode::Internal, "city unavailable".to_owned());
+        let store = self.store.lock().map_err(|_| internal())?;
+        let mut city = store
+            .city(player)
+            .map_err(|_| internal())?
+            .ok_or_else(internal)?;
+        let now = self.now();
+        let completed = city.collect(now, &self.data);
+        let result = action(&mut city, now, &self.data);
+        store.save_city(player, &city).map_err(|_| internal())?;
+        if result.is_ok() || completed {
+            let _ = self.updates.send((player, self.to_view(&city)));
+        }
+        result.map_err(|e| (ErrorCode::InvalidAction, e.to_string()))
     }
 
     /// Timestamp of the most recent completed server tick, for health/tests.
@@ -120,17 +169,22 @@ impl Kingdom {
             .city(player)
             .map_err(|_| ErrorCode::Internal)?
             .ok_or(ErrorCode::NotLoggedIn)?;
-        city.collect(self.now(), &self.data);
+        let completed = city.collect(self.now(), &self.data);
         store
             .save_city(player, &city)
             .map_err(|_| ErrorCode::Internal)?;
-        Ok(self.to_view(&city))
+        let view = self.to_view(&city);
+        if completed {
+            let _ = self.updates.send((player, view.clone()));
+        }
+        Ok(view)
     }
 
     fn to_view(&self, city: &City) -> CityView {
         let r = city.resources;
         CityView {
             size: city.size,
+            builder_slots: self.data.construction.builder_slots,
             as_of: city.as_of.unwrap_or_else(|| self.now()),
             rates_per_hour: resource_view(city.rates_per_hour(&self.data)),
             capacity: resource_view(city.capacity(&self.data)),
@@ -156,6 +210,13 @@ impl Kingdom {
                         x: b.x,
                         y: b.y,
                         footprint: def.footprint,
+                        state: if b.upgrade.is_some() {
+                            BuildingState::Upgrading
+                        } else {
+                            BuildingState::Ready
+                        },
+                        started_at: b.upgrade.as_ref().map(|u| u.started_at),
+                        completes_at: b.upgrade.as_ref().map(|u| u.completes_at),
                     }
                 })
                 .collect(),

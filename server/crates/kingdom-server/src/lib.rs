@@ -68,8 +68,9 @@ async fn tick_loop(kingdom: Arc<Kingdom>) {
     loop {
         interval.tick().await;
         let kingdom = kingdom.clone();
-        if let Err(error) = tokio::task::spawn_blocking(move || kingdom.tick()).await {
-            tracing::error!(%error, "server tick worker failed");
+        match tokio::task::spawn_blocking(move || kingdom.tick()).await {
+            Ok(Ok(())) => {}
+            error => tracing::error!(?error, "server tick failed"),
         }
     }
 }

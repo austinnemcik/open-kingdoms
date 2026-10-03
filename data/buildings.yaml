@@ -2,8 +2,10 @@
 # value and a growth factor: value(level) = base * growth^(level - 1).
 # Costs are what it takes to reach that level; level 1 is the build cost.
 # `requires_city_hall`: minimum City Hall level before this can be built.
+construction: { builder_slots: 2, cancellation_refund_percent: 100 }
 buildings:
   - id: city_hall
+    upgrade_requirements: [{ kind: barracks, levels_below_target: 1 }]
     capacity: { base: { food: 2000, wood: 2000, stone: 2000, gold: 2000 }, growth: 1.6 }
     name: City Hall
     footprint: 4

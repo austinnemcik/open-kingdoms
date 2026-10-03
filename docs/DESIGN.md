@@ -90,3 +90,16 @@ are 45 seconds, upgrades 60 seconds, and City Hall upgrades begin at two minutes
 Integer accounting preserves fractions across collections; offline accrual caps
 at storage. Production never removes existing over-cap resources. Snapshots carry
 resources, rates_per_hour, capacity and as_of (Unix seconds) for client interpolation.
+
+## Building upgrades and cancellation
+
+Two builder slots are free, configured in buildings.yaml. A non-City-Hall building
+cannot upgrade beyond City Hall. City Hall level N requires Barracks level N-1;
+relative prerequisites are data-driven. Costs are deducted when a job starts,
+with the paid cost recorded alongside its Unix-second start/completion timestamps.
+Completed levels continue producing during upgrades. Offline production is split
+at every completion boundary so new rates apply only after completion.
+Cancellation before completion returns 100% of the recorded cost (the YAML refund
+policy); completion at the exact deadline takes precedence over cancellation.
+Refunds may temporarily exceed storage; production pauses until below capacity.
+Persisted changes and timer completions push a full city_update to owner sessions.

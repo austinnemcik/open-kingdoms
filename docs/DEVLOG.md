@@ -81,3 +81,13 @@ ID, what changed, and anything the next run should know.
   SVG sources a second time.
 - Note: to screenshot UI larger than the monitor, `client/ui/screenshot_ui.gd`
   renders the scene in a SubViewport.
+## 2026-10-03 - P1-05 Upgrade queue
+
+- Added atomic upgrade costs/reservations, two free builders, max-level/City-Hall
+  gates and data-driven prerequisites (Hall N requires Barracks N-1).
+- Persisted jobs finish lazily or on the one-second tick. Collection splits at
+  completion boundaries; owner sessions receive persisted full city_update snapshots.
+- Cancellation returns the full recorded cost, configurable in YAML, including
+  over-cap refunds. Exact-deadline completion wins. Godot Net updates GameState.
+- Added pure rule/edge tests plus WebSocket tests for queues, cancellation,
+  owner isolation, timer pushes and restart completion.
