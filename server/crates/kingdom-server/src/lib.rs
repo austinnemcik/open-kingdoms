@@ -5,6 +5,7 @@
 
 mod session;
 mod state;
+pub mod store;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -42,7 +43,19 @@ pub async fn serve(
 ) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     on_bound(listener.local_addr()?);
-    let kingdom = Arc::new(Kingdom::new(data));
+    let kingdom = Arc::new(tokio::task::spawn_blocking(move || Kingdom::new(data)).await??);
+    axum::serve(listener, router(kingdom)).await?;
+    Ok(())
+}
+
+/// Serve an injected kingdom; persistent deployments create their store off-runtime.
+pub async fn serve_kingdom(
+    addr: SocketAddr,
+    kingdom: Arc<Kingdom>,
+    on_bound: impl FnOnce(SocketAddr),
+) -> anyhow::Result<()> {
+    let listener = TcpListener::bind(addr).await?;
+    on_bound(listener.local_addr()?);
     axum::serve(listener, router(kingdom)).await?;
     Ok(())
 }

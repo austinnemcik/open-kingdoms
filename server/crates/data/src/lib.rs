@@ -24,7 +24,7 @@ pub enum DataError {
 }
 
 /// The four city resources.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
 pub struct Resources {
     pub food: u64,
     pub wood: u64,

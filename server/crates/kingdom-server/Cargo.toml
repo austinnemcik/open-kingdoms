@@ -6,6 +6,8 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+thiserror.workspace = true
 argon2 = "0.5"
 rand = "0.8"
 base64 = "0.22"
@@ -21,6 +23,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+tempfile = "3"
 tokio-tungstenite.workspace = true
 
 [lints]

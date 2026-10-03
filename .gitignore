@@ -17,3 +17,8 @@ Thumbs.db
 
 # Autonomous agent run lock
 /.agent/
+
+# Local SQLite state
+*.db
+*.db-shm
+*.db-wal

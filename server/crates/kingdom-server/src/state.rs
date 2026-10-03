@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use crate::store::{SqliteStore, Store, StoreError};
 use std::sync::Mutex;
 
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
@@ -9,29 +9,26 @@ use protocol::{BuildingView, CityView, ResourcesView};
 use protocol::{ErrorCode, ServerMsg};
 use rand::{RngCore, rngs::OsRng};
 
-/// All mutable state of one kingdom. In-memory for now; persistence is a
-/// roadmap item (see docs/ROADMAP.md).
+/// Authoritative state backed by a serialized persistence connection.
 pub struct Kingdom {
     pub data: GameData,
-    players: Mutex<Players>,
-}
-
-#[derive(Default)]
-struct Players {
-    next_id: PlayerId,
-    by_name: HashMap<String, (PlayerId, String)>,
-    sessions: HashMap<String, (PlayerId, String)>,
-    cities: HashMap<PlayerId, City>,
+    store: Mutex<Box<dyn Store>>,
 }
 
 impl Kingdom {
-    pub fn new(data: GameData) -> Self {
+    /// Isolated in-memory SQLite kingdom for tests and embedding.
+    pub fn new(data: GameData) -> Result<Self, StoreError> {
+        Ok(Self::with_store(
+            data,
+            Box::new(SqliteStore::open(":memory:")?),
+        ))
+    }
+
+    /// Inject an already migrated store. Storage methods run on blocking workers.
+    pub fn with_store(data: GameData, store: Box<dyn Store>) -> Self {
         Self {
             data,
-            players: Mutex::new(Players {
-                next_id: 1,
-                ..Default::default()
-            }),
+            store: Mutex::new(store),
         }
     }
 
@@ -41,33 +38,32 @@ impl Kingdom {
         if !valid_name(name) || !(8..=128).contains(&password.chars().count()) {
             return Err(ErrorCode::InvalidCredentials);
         }
-        let mut players = self.players.lock().map_err(|_| ErrorCode::Internal)?;
-        let id = if let Some((id, hash)) = players.by_name.get(name) {
-            let hash = PasswordHash::new(hash).map_err(|_| ErrorCode::Internal)?;
+        let mut store = self.store.lock().map_err(|_| ErrorCode::Internal)?;
+        let id = if let Some(account) = store.account(name).map_err(|_| ErrorCode::Internal)? {
+            let hash =
+                PasswordHash::new(&account.password_hash).map_err(|_| ErrorCode::Internal)?;
             Argon2::default()
                 .verify_password(password.as_bytes(), &hash)
                 .map_err(|_| ErrorCode::InvalidCredentials)?;
-            *id
+            account.id
         } else {
             let salt = SaltString::generate(&mut OsRng);
             let hash = Argon2::default()
                 .hash_password(password.as_bytes(), &salt)
                 .map_err(|_| ErrorCode::Internal)?
                 .to_string();
-            let id = players.next_id;
-            players.next_id = id.checked_add(1).ok_or(ErrorCode::Internal)?;
-            players.by_name.insert(name.to_owned(), (id, hash));
-            players.cities.insert(id, City::new_starting(&self.data));
-            id
+            store
+                .register(name, &hash, &City::new_starting(&self.data))
+                .map_err(|_| ErrorCode::Internal)?
         };
         let mut bytes = [0; 32];
         OsRng
             .try_fill_bytes(&mut bytes)
             .map_err(|_| ErrorCode::Internal)?;
         let token = URL_SAFE_NO_PAD.encode(bytes);
-        players
-            .sessions
-            .insert(token.clone(), (id, name.to_owned()));
+        store
+            .save_session(&token, id)
+            .map_err(|_| ErrorCode::Internal)?;
         Ok(ServerMsg::LoggedIn {
             player_id: id,
             name: name.to_owned(),
@@ -77,21 +73,22 @@ impl Kingdom {
 
     /// Resolve an opaque bearer token without accepting a client player id.
     pub fn resume(&self, token: &str) -> Result<ServerMsg, ErrorCode> {
-        let players = self.players.lock().map_err(|_| ErrorCode::Internal)?;
-        let (id, name) = players
-            .sessions
-            .get(token)
+        let store = self.store.lock().map_err(|_| ErrorCode::Internal)?;
+        let (id, name) = store
+            .session(token)
+            .map_err(|_| ErrorCode::Internal)?
             .ok_or(ErrorCode::InvalidCredentials)?;
         Ok(ServerMsg::LoggedIn {
-            player_id: *id,
-            name: name.clone(),
+            player_id: id,
+            name,
             token: token.to_owned(),
         })
     }
 
+    /// Fetch the authoritative persisted city snapshot.
     pub fn city_view(&self, player: PlayerId) -> Option<CityView> {
-        let players = self.players.lock().ok()?;
-        players.cities.get(&player).map(|c| self.to_view(c))
+        let store = self.store.lock().ok()?;
+        store.city(player).ok()?.map(|c| self.to_view(&c))
     }
 
     fn to_view(&self, city: &City) -> CityView {
@@ -146,7 +143,7 @@ mod tests {
 
     #[test]
     fn password_boundaries_and_tokens() {
-        let k = Kingdom::new(GameData::load(GameData::repo_data_dir()).unwrap());
+        let k = Kingdom::new(GameData::load(GameData::repo_data_dir()).unwrap()).unwrap();
         for password in ["short".to_owned(), "x".repeat(129)] {
             assert_eq!(
                 k.login("alice", &password),
@@ -176,8 +173,9 @@ mod tests {
         for (name, password) in [("eight", "x".repeat(8)), ("maximum", "?".repeat(128))] {
             assert!(k.login(name, &password).is_ok());
         }
-        let players = k.players.lock().unwrap();
-        assert!(players.by_name["alice"].1.starts_with("$argon2id$"));
-        assert!(!players.by_name["alice"].1.contains("password123"));
+        let store = k.store.lock().unwrap();
+        let hash = store.account("alice").unwrap().unwrap().password_hash;
+        assert!(hash.starts_with("$argon2id$"));
+        assert!(!hash.contains("password123"));
     }
 }

@@ -29,3 +29,14 @@ ID, what changed, and anything the next run should know.
   and WebSocket frames/messages are bounded to 4 KiB. Password fields are secret and
   cleared after submission; client tokens are retained only in memory.
 - Added password boundary, hash, token, reconnect and WebSocket failure-limit tests.
+
+## 2026-10-03 - P1-02 Persistence
+
+- Chose bundled rusqlite: a small synchronous Store trait and existing blocking
+  workers avoid blocking Tokio without adding an async SQL framework. SQLite uses
+  WAL, foreign keys, FULL durability, and checked-in transactional migrations.
+- Players, Argon2id credentials, bearer sessions and serialized cities persist in
+  ROK_DB (default kingdom.db). Registration is atomic; the database is authoritative.
+- Tests cover migrations, duplicate registration, foreign keys, city writes, and
+  real binary restart with password login and token resume. E2e uses :memory: so
+  verification never modifies a developer's persistent kingdom.
