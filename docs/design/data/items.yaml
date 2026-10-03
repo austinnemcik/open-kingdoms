@@ -1,0 +1,67 @@
+# Item catalogue. Spec: docs/design/08-events-and-progression.md section 2.
+# effect kinds: speedup {target, seconds} | resource {res, amount} | commander_xp {amount} | stamina {amount}
+#               shield {seconds} | teleport {mode} | sculpture {rarity} | buff {modifiers, seconds}
+#               migration_writ {} (09 section 4) | cosmetic {slot}
+items:
+  # --- speedups (target: build | research | train | heal | universal) ---
+  - { id: speedup_build_5m, name: "Builder's Hourglass (5 min)", effect: { kind: speedup, target: build, seconds: 300 } }
+  - { id: speedup_build_60m, name: "Builder's Hourglass (1 h)", effect: { kind: speedup, target: build, seconds: 3600 } }
+  - { id: speedup_build_3h, name: "Builder's Hourglass (3 h)", effect: { kind: speedup, target: build, seconds: 10800 } }
+  - { id: speedup_research_5m, name: "Scholar's Hourglass (5 min)", effect: { kind: speedup, target: research, seconds: 300 } }
+  - { id: speedup_research_60m, name: "Scholar's Hourglass (1 h)", effect: { kind: speedup, target: research, seconds: 3600 } }
+  - { id: speedup_research_3h, name: "Scholar's Hourglass (3 h)", effect: { kind: speedup, target: research, seconds: 10800 } }
+  - { id: speedup_train_5m, name: "Drillmaster's Hourglass (5 min)", effect: { kind: speedup, target: train, seconds: 300 } }
+  - { id: speedup_train_60m, name: "Drillmaster's Hourglass (1 h)", effect: { kind: speedup, target: train, seconds: 3600 } }
+  - { id: speedup_train_3h, name: "Drillmaster's Hourglass (3 h)", effect: { kind: speedup, target: train, seconds: 10800 } }
+  - { id: speedup_heal_5m, name: "Healer's Hourglass (5 min)", effect: { kind: speedup, target: heal, seconds: 300 } }
+  - { id: speedup_heal_60m, name: "Healer's Hourglass (1 h)", effect: { kind: speedup, target: heal, seconds: 3600 } }
+  - { id: speedup_heal_3h, name: "Healer's Hourglass (3 h)", effect: { kind: speedup, target: heal, seconds: 10800 } }
+  - { id: speedup_universal_5m, name: "Hourglass (5 min)", effect: { kind: speedup, target: universal, seconds: 300 } }
+  - { id: speedup_universal_60m, name: "Hourglass (1 h)", effect: { kind: speedup, target: universal, seconds: 3600 } }
+  # --- resources ---
+  - { id: resource_food_10k, name: "Grain Sacks (10k)", effect: { kind: resource, res: food, amount: 10000 } }
+  - { id: resource_food_50k, name: "Grain Wagon (50k)", effect: { kind: resource, res: food, amount: 50000 } }
+  - { id: resource_food_500k, name: "Grain Convoy (500k)", effect: { kind: resource, res: food, amount: 500000 } }
+  - { id: resource_wood_10k, name: "Timber Bundle (10k)", effect: { kind: resource, res: wood, amount: 10000 } }
+  - { id: resource_wood_50k, name: "Timber Wagon (50k)", effect: { kind: resource, res: wood, amount: 50000 } }
+  - { id: resource_wood_500k, name: "Timber Convoy (500k)", effect: { kind: resource, res: wood, amount: 500000 } }
+  - { id: resource_stone_10k, name: "Stone Crate (10k)", effect: { kind: resource, res: stone, amount: 10000 } }
+  - { id: resource_stone_50k, name: "Stone Wagon (50k)", effect: { kind: resource, res: stone, amount: 50000 } }
+  - { id: resource_stone_500k, name: "Stone Convoy (500k)", effect: { kind: resource, res: stone, amount: 500000 } }
+  - { id: resource_gold_10k, name: "Coin Purse (10k)", effect: { kind: resource, res: gold, amount: 10000 } }
+  - { id: resource_gold_50k, name: "Coin Chest (50k)", effect: { kind: resource, res: gold, amount: 50000 } }
+  - { id: resource_gold_500k, name: "Coin Vault (500k)", effect: { kind: resource, res: gold, amount: 500000 } }
+  # --- commanders ---
+  - { id: xp_tome_1k, name: "Field Notes (1,000 XP)", effect: { kind: commander_xp, amount: 1000 } }
+  - { id: xp_tome_10k, name: "War Diary (10,000 XP)", effect: { kind: commander_xp, amount: 10000 } }
+  - { id: xp_tome_50k, name: "Grand Chronicle (50,000 XP)", effect: { kind: commander_xp, amount: 50000 } }
+  - { id: sculpture_universal_veteran, name: "Veteran Sculpture", effect: { kind: sculpture, rarity: veteran } }
+  - { id: sculpture_universal_renowned, name: "Renowned Sculpture", effect: { kind: sculpture, rarity: renowned } }
+  - { id: sculpture_universal_legendary, name: "Legendary Sculpture", effect: { kind: sculpture, rarity: legendary } }
+  # --- map ---
+  - { id: stamina_50, name: "Trail Rations (50 stamina)", effect: { kind: stamina, amount: 50 } }
+  - { id: stamina_100, name: "Feast Rations (100 stamina)", effect: { kind: stamina, amount: 100 } }
+  - { id: shield_8h, name: "Truce Banner (8 h)", effect: { kind: shield, seconds: 28800 } }
+  - { id: shield_24h, name: "Truce Banner (24 h)", effect: { kind: shield, seconds: 86400 } }
+  - { id: shield_72h, name: "Truce Banner (3 d)", effect: { kind: shield, seconds: 259200 } }
+  - { id: teleport_novice, name: "Settler's Writ", effect: { kind: teleport, mode: novice } }
+  - { id: teleport_random, name: "Wanderer's Writ", effect: { kind: teleport, mode: random } }
+  - { id: teleport_territory, name: "Homecoming Writ", effect: { kind: teleport, mode: territory } }
+  - { id: teleport_targeted, name: "Surveyor's Writ", effect: { kind: teleport, mode: targeted } }
+  - { id: migration_writ, name: "Writ of Passage", effect: { kind: migration_writ } }
+  - { id: cosmetic_season_banner, name: "Convergence Banner", effect: { kind: cosmetic, slot: city_banner } }
+  # --- timed buffs (Account scope; one active buff per buff_group, longer remaining time wins) ---
+  - { id: buff_gather_8h, name: "Harvest Song (8 h)", effect: { kind: buff, buff_group: gather, seconds: 28800, modifiers: { gather_speed_pct: 25 } } }
+  - { id: buff_production_8h, name: "Market Fair (8 h)", effect: { kind: buff, buff_group: production, seconds: 28800,
+      modifiers: { food_production_pct: 25, wood_production_pct: 25, stone_production_pct: 25, gold_production_pct: 25 } } }
+  - { id: buff_attack_1h, name: "War Drums (1 h)", effect: { kind: buff, buff_group: attack, seconds: 3600, modifiers: { attack_pct: 5 } } }
+  - { id: buff_defense_1h, name: "Shield Oath (1 h)", effect: { kind: buff, buff_group: defense, seconds: 3600, modifiers: { defense_pct: 5 } } }
+
+# Reward tokens: never stored in an inventory; resolved into a real item when granted (08 section 2.2).
+reward_tokens:
+  - { id: speedup_any_5m, weights: { speedup_build_5m: 30, speedup_research_5m: 20, speedup_train_5m: 30, speedup_heal_5m: 20 } }
+  - { id: speedup_any_60m, weights: { speedup_build_60m: 30, speedup_research_60m: 20, speedup_train_60m: 30, speedup_heal_60m: 20 } }
+  - { id: speedup_any_3h, weights: { speedup_build_3h: 30, speedup_research_3h: 20, speedup_train_3h: 30, speedup_heal_3h: 20 } }
+
+inventory:
+  max_stack: 999999

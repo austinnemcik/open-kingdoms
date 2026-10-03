@@ -1,0 +1,68 @@
+# Kingdom lifecycle, titles, migration and seasons. Spec: docs/design/09-kingdom-seasons.md.
+seasons:
+  kingdom:
+    registration_closes_day: 30         # or when account_cap is reached, whichever comes first
+    account_cap: 8000
+    inactive_city_removal_days: 30      # City Hall <= 5 only; city leaves the map, account kept
+
+  titles:                               # granted by the Sovereign; Account-scope modifiers
+    reassign_cooldown_s: 3600
+    list:
+      - { id: sovereign, name: "Sovereign", automatic: true, modifiers: { attack_pct: 3, defense_pct: 3 } }
+      - { id: marshal, name: "Marshal", modifiers: { attack_pct: 5 } }
+      - { id: warden, name: "Warden", modifiers: { defense_pct: 5 } }
+      - { id: architect, name: "Architect", modifiers: { build_speed_pct: 5 } }
+      - { id: sage, name: "Sage", modifiers: { research_speed_pct: 5 } }
+      - { id: quartermaster, name: "Quartermaster", modifiers: { gather_speed_pct: 10, train_speed_pct: 5 } }
+
+  migration:
+    min_target_kingdom_day: 60
+    cooldown_s: 2592000                 # 30 days
+    writs_base: 1
+    writs_per_power: 5000000            # writs = writs_base + floor(power / writs_per_power)
+    max_resources_carried: { food: 5000000, wood: 5000000, stone: 4000000, gold: 2000000 }
+
+  convergence:
+    min_kingdom_day: 84
+    group_size: 8
+    min_group_size: 2
+    cycle_days: 70                      # 56 days of season + 14 days of rest
+    season_days: 56
+    registration_days: 3                # before the season starts
+    min_city_hall: 16
+    map:                                # overrides of world.yaml for the season map
+      sectors: 8
+      spoke_angles_deg: [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5]
+      ring2_pass_angles_deg: [0, 45, 90, 135, 180, 225, 270, 315]
+      shrine_angles_deg: [-10, 10, 35, 55, 80, 100, 125, 145, 170, 190, 215, 235, 260, 280, 305, 325]
+      barbarian_level_bonus: 0
+    phases:                             # season day ranges, inclusive
+      - { id: muster, days: [1, 14], opens: [] }
+      - { id: borders, days: [15, 28], opens: [pass_1, shrine] }
+      - { id: heartlands, days: [29, 42], opens: [pass_2, sanctum] }
+      - { id: crown, days: [43, 56], opens: [pass_3, great_sanctum, throne] }
+    severe_dead_pct: 50                 # share of severely wounded that die in season PvP (02 section 7)
+    faction_points_per_hour: { pass_1: 10, pass_2: 30, pass_3: 60, shrine: 20, sanctum: 60, great_sanctum: 150, throne: 500 }
+    faction_points_per_kill_points: 0.0001
+    contribution:
+      per_kill_point: 0.01
+      per_durability_damage: 0.01
+      per_barbarian_level: 50
+      per_gathered_load: 0.0001
+    personal_thresholds:
+      - { contribution: 1000, medals: 50 }
+      - { contribution: 5000, medals: 100 }
+      - { contribution: 20000, medals: 200 }
+      - { contribution: 60000, medals: 400 }
+      - { contribution: 150000, medals: 800 }
+    faction_rank_multiplier: [2.0, 1.6, 1.4, 1.2, 1.0, 1.0, 1.0, 1.0]
+    medal_shop:                         # per player per season
+      - { item: sculpture_universal_legendary, price: 100, limit: 20 }
+      - { item: sculpture_universal_renowned, price: 40, limit: 20 }
+      - { item: migration_writ, price: 150, limit: 10 }
+      - { item: teleport_targeted, price: 100, limit: 3 }
+      - { item: shield_24h, price: 80, limit: 3 }
+      - { item: xp_tome_50k, price: 50, limit: 20 }
+      - { item: speedup_train_3h, price: 30, limit: 20 }
+      - { item: speedup_heal_3h, price: 30, limit: 20 }
+      - { item: cosmetic_season_banner, price: 300, limit: 1 }

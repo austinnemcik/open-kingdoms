@@ -1,0 +1,105 @@
+# Alliance constants. Spec: docs/design/07-alliances.md.
+alliance:
+  create:
+    min_city_hall: 4
+    cost: { food: 20000, wood: 20000 }
+    name_len: [3, 20]
+    tag_len: [3, 4]
+  member_cap_base: 50               # + member_cap from research (al_fellowship)
+  officer_cap: 8
+  rejoin_cooldown_s: 3600           # after leaving or being kicked
+  leader_inactive_s: 604800         # 7 days -> automatic succession
+  disband_min_age_s: 0
+  ranks:
+    - { rank: 1, name: "Recruit" }
+    - { rank: 2, name: "Member" }
+    - { rank: 3, name: "Veteran" }
+    - { rank: 4, name: "Officer" }
+    - { rank: 5, name: "Leader" }
+
+  help:
+    min_seconds: 60
+    pct_of_total: 1                 # each help removes max(min_seconds, 1 % of the job's total time)
+    credits_per_help: 5
+    credits_daily_cap: 200
+    request_kinds: [build, research, heal, train]
+
+  donation:
+    charges_cap: 15
+    charge_regen_s: 3600
+    cost_per_city_hall_level: { food: 500, wood: 500 }
+    points: 100                     # research points added to the chosen tech
+    funds: 100                      # alliance funds added
+    credits: 50                     # personal alliance credits
+    recommended_bonus_credits: 10
+
+  research:                         # modifiers are per level; other stats are alliance-level stats
+    - { id: al_construction, name: "Shared Scaffolds", max_level: 10, points_per_level: 100000, modifiers: { build_speed_pct: 0.5 } }
+    - { id: al_scholarship, name: "Shared Archives", max_level: 10, points_per_level: 100000, modifiers: { research_speed_pct: 0.5 } }
+    - { id: al_harvest, name: "Common Fields", max_level: 10, points_per_level: 100000, modifiers: { gather_speed_pct: 1 } }
+    - { id: al_drill, name: "Joint Drill", max_level: 10, points_per_level: 120000, modifiers: { train_speed_pct: 1 } }
+    - { id: al_field_hospitals, name: "Field Hospitals", max_level: 10, points_per_level: 120000, modifiers: { heal_speed_pct: 2 } }
+    - { id: al_arms, name: "Allied Arms", max_level: 10, points_per_level: 150000, modifiers: { attack_pct: 0.5 } }
+    - { id: al_bulwark, name: "Allied Bulwark", max_level: 10, points_per_level: 150000, modifiers: { defense_pct: 0.5 } }
+    - { id: al_vigor, name: "Allied Vigor", max_level: 10, points_per_level: 150000, modifiers: { health_pct: 0.5 } }
+    - { id: al_logistics, name: "Waystations", max_level: 10, points_per_level: 120000, modifiers: { march_speed_pct: 0.5 } }
+    - { id: al_war_councils, name: "Grand Councils", max_level: 10, points_per_level: 120000, modifiers: { rally_capacity_pct: 1 } }
+    - { id: al_solidarity, name: "Solidarity", max_level: 5, points_per_level: 150000, modifiers: { help_limit_flat: 1 } }
+    - { id: al_fellowship, name: "Fellowship", max_level: 10, points_per_level: 80000, stats: { member_cap: 5 } }
+    - { id: al_banners, name: "Standard Bearers", max_level: 10, points_per_level: 80000, stats: { banner_limit: 5 } }
+    - { id: al_strongholds, name: "Master Masons", max_level: 2, points_per_level: 400000, stats: { stronghold_limit: 1 } }
+
+  structures:
+    stronghold: { footprint: 3, territory_radius: 12, durability: 600000, build_time_s: 14400, cost_funds: 100000,
+                  garrison_capacity: 500000, limit_base: 1, rebuild_cooldown_s: 43200 }
+    banner: { footprint: 1, territory_radius: 4, durability: 60000, build_time_s: 1800, cost_funds: 8000,
+              garrison_capacity: 0, limit_base: 10 }
+    under_construction_durability_pct: 25
+    min_distance_from_sites: 12     # tiles from passes, sanctums, throne footprints
+  territory:
+    own_modifiers: { gather_speed_pct: 10 }           # armies gathering inside own territory
+    city_modifiers: { garrison_defense_pct: 5 }       # cities located inside own territory
+
+  shop:                             # personal credits; limits per player per game week
+    - { item: speedup_build_60m, price: 150, weekly_limit: 10 }
+    - { item: speedup_research_60m, price: 150, weekly_limit: 10 }
+    - { item: speedup_train_60m, price: 100, weekly_limit: 10 }
+    - { item: speedup_heal_60m, price: 100, weekly_limit: 10 }
+    - { item: resource_food_50k, price: 40, weekly_limit: 20 }
+    - { item: resource_wood_50k, price: 40, weekly_limit: 20 }
+    - { item: resource_stone_50k, price: 60, weekly_limit: 20 }
+    - { item: resource_gold_50k, price: 80, weekly_limit: 20 }
+    - { item: xp_tome_10k, price: 100, weekly_limit: 10 }
+    - { item: stamina_50, price: 100, weekly_limit: 7 }
+    - { item: shield_8h, price: 300, weekly_limit: 3 }
+    - { item: teleport_territory, price: 400, weekly_limit: 2 }
+    - { item: teleport_targeted, price: 1000, weekly_limit: 1 }
+    - { item: teleport_random, price: 200, weekly_limit: 2 }
+    - { item: sculpture_universal_veteran, price: 150, weekly_limit: 20 }
+    - { item: sculpture_universal_renowned, price: 400, weekly_limit: 10 }
+    - { item: sculpture_universal_legendary, price: 1200, weekly_limit: 5 }
+
+  gifts:
+    claim_window_s: 86400
+    daily_claim_cap: 10
+    tiers:
+      - { tier: 1, credits: 30, items: { speedup_any_5m: 1 } }
+      - { tier: 2, credits: 50, items: { speedup_any_5m: 2 } }
+      - { tier: 3, credits: 80, items: { speedup_any_5m: 3 } }
+      - { tier: 4, credits: 120, items: { speedup_any_60m: 1 } }
+      - { tier: 5, credits: 200, items: { speedup_any_60m: 2, sculpture_universal_renowned: 1 } }
+
+  caravans:
+    speed_tiles_per_min: 30
+    max_active: 2
+    daily_send_loads: 5             # total sent per game day <= daily_send_loads x caravan_load
+    min_membership_s: 86400         # both sender and recipient
+
+  chat:
+    max_len: 300
+    history: 200                    # messages kept per channel
+  mail:
+    retention_s: 2592000            # 30 days
+    max_per_category: 200
+    player_mail_max_len: 2000
+    alliance_mail_daily: 5          # circulars per alliance per day

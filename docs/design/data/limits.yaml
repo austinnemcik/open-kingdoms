@@ -1,0 +1,38 @@
+# Rate limits and validation limits. Spec: docs/design/11-anti-cheat-and-limits.md.
+limits:
+  connection:
+    max_message_bytes: 16384
+    max_messages_per_s: 30            # hard cap per connection, all classes together -> disconnect
+    max_connections_per_ip: 8
+    login_attempts_per_ip_per_min: 10
+    idle_timeout_s: 90                # no message (incl. ping) -> close
+    violations_before_disconnect: 20  # rate_limited answers within 60 s
+  # Token buckets per player: `burst` tokens, refill `per_min` tokens per minute. Every request costs 1.
+  buckets:
+    read: { burst: 30, per_min: 120 }        # get_*, search_*, chat_history, read_mail
+    action: { burst: 20, per_min: 60 }       # city, troops, research, commanders, items, quests, alliance admin
+    march: { burst: 10, per_min: 30 }        # march, order_army, recall_army, scout, reinforce, rallies
+    map_view: { burst: 20, per_min: 240 }
+    collect: { burst: 20, per_min: 60 }
+    help: { burst: 5, per_min: 20 }          # help_all, request_help
+    donate: { burst: 15, per_min: 60 }
+    chat: { burst: 5, per_min: 12 }
+    mail: { burst: 3, per_min: 6 }           # send_mail
+    report: { burst: 3, per_min: 1 }
+  default_bucket: action
+  chat:
+    kingdom_min_city_hall: 5
+    duplicate_window_s: 30            # identical text in the same channel is rejected
+    mute_durations_s: [3600, 86400, 604800]
+    reports_for_auto_mute: 5          # distinct reporters within 10 min on kingdom chat -> 1 h mute pending review
+  names:
+    player_len: [3, 16]
+    rename_cooldown_s: 604800
+  heuristics:
+    session_hours_flag: 20            # continuous activity without a 30 min gap
+    action_interval_cv_flag: 0.05     # coefficient of variation of intervals over >= 200 repeated actions
+    reaction_ms_flag: 150             # median time from push to dependent request over >= 100 samples
+    caravan_one_way_ratio_flag: 10    # received / sent over 7 days with >= 5 distinct senders
+    shared_ip_accounts_flag: 4
+  audit:
+    retention_days: 90
