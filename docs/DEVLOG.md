@@ -57,3 +57,27 @@ ID, what changed, and anything the next run should know.
   backwards/extreme clocks, and initializes legacy cities without epoch windfalls.
 - City snapshots expose per-hour rates, capacity and Unix-second as_of; collected
   state persists before replying. Added deterministic economy and WebSocket tests.
+
+## 2026-10-03 — UI visual system (design sub-agent, not a roadmap task)
+
+- Added the UI kit under `client/ui/`: project-wide theme (`theme/main_theme.tres`,
+  set as `gui/theme/custom`), Cinzel + Nunito fonts (OFL), 38 icons, and widgets
+  in `ui/widgets/` (ResourceBar/ResourceChip, TimerProgressBar, IconButton,
+  PanelFrame, Toast, ConfirmDialog, CostRow). `UiFormat` does "12.4K" and
+  "02:13:05" formatting; `UiIcons` and `UiColors` are the lookups.
+- `docs/UI_STYLE.md` is the style guide. References to build against:
+  `docs/screenshots/ui_showcase.png` and `docs/screenshots/ui_hud_mock.png`
+  (P1-07 to P1-09 should compose the HUD from these widgets, as in
+  `client/ui/hud_mock.gd`).
+- All art is generated: `tools/ui/build_all.sh` runs the texture and icon
+  scripts (Python: resvg-py, Pillow, numpy), re-imports and rebuilds the theme
+  with `client/ui/theme/build_theme.gd`. Do not hand-edit the `.tres`.
+- The theme now applies to every Control, including the existing login screen:
+  default labels are cream (meant for dark surfaces); use the `...Ink` label
+  variations on parchment.
+- Note: icon `.import` files have mipmaps enabled by `build_icons.py`; draw icons
+  with `UiIcons.make_rect` so they downscale cleanly.
+- Note: `client/ui/icons/svg/` has a `.gdignore` so Godot does not import the
+  SVG sources a second time.
+- Note: to screenshot UI larger than the monitor, `client/ui/screenshot_ui.gd`
+  renders the scene in a SubViewport.
