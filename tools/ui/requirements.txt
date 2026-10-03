@@ -1,0 +1,3 @@
+resvg-py
+Pillow
+numpy

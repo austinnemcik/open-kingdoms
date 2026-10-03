@@ -1,0 +1,9 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://ui/fonts/Nunito-Variable.ttf" id="1_1kg42"]
+
+[resource]
+base_font = ExtResource("1_1kg42")
+variation_opentype = {
+2003265652: 650
+}
