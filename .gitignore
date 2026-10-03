@@ -2,6 +2,7 @@
 /server/target/
 
 # Godot
+/build/
 /client/.godot/
 /client/export/
 *.translation

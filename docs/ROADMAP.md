@@ -40,7 +40,7 @@ Goal: one player can grow a city from City Hall 1 to 10 by playing.
 - [x] P1-13 Building visual tiers: Blender builders take a tier (1–5) and produce visibly grander models; client chooses by level.
 - [x] P1-14 City dressing: terrain beyond the city wall (hills, trees, water), roads, a city wall model, decorative props. Screenshot review.
 - [ ] P1-14b Art polish from the PR #10 review: desaturate grass toward a natural meadow green; shrink cobble texel scale and tame the orange road fringe; shrink the plaza and make roads only connect buildings, not pave the city; bridges where gate roads cross the river; shoreline/water detail; give each kind a distinct tier-1 silhouette/roof (barracks vs academy T1 are near-identical); make goldmine/quarry tiers 1→2 visibly different; fill the empty area inside the wall with fields/orchards/houses, not random trees; LOD or instanced forest (currently one ~109k-tri mesh); fix world labels showing through the HUD bar.
-- [ ] P1-15 Web export: Godot web export preset (Compatibility renderer), CI job that builds it, kingdom-server serves the exported client at `/`.
+- [x] P1-15 Web export: Godot web export preset (Compatibility renderer), CI job that builds it, kingdom-server serves the exported client at `/`.
 - [ ] P1-16 Balance simulator CLI (`tools/` or a `sim` bin): simulates an active player's first 30 days and prints City Hall level over time; use it to tune `data/` toward the pacing in DESIGN.md.
 - [ ] P1-17 Items and inventory: `items.yaml`, `grant()`, `use_speedup`, `use_item`, starting items (spec 08 §1-2).
 - [ ] P1-18 Quests: counters, chapters 1-9, daily objectives and chests, Renown levels and modifiers; quest panel (spec 08 §3-4, 10 §3.11).

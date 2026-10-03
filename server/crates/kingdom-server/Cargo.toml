@@ -22,9 +22,11 @@ serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+tower-http = { version = "0.6", features = ["fs", "set-header"] }
 
 [dev-dependencies]
 tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
 tokio-tungstenite.workspace = true
 
 [lints]

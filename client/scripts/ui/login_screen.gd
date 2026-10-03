@@ -9,7 +9,7 @@ extends Control
 
 
 func _ready() -> void:
-	_server_edit.text = Net.DEFAULT_URL
+	_server_edit.text = Net.default_url()
 	_play_button.pressed.connect(_on_play)
 	_name_edit.text_submitted.connect(func(_t: String) -> void: _on_play())
 	_password_edit.text_submitted.connect(func(_t: String) -> void: _on_play())

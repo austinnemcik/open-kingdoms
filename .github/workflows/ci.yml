@@ -42,3 +42,27 @@ jobs:
           unzip -q godot.zip -d "$HOME/godot"
           echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
       - run: scripts/verify.sh client
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and matching export templates
+        run: |
+          curl -sSfL -o godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip -d "$HOME/godot"
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}_linux.x86_64" >> "$GITHUB_ENV"
+          curl -sSfL -o templates.tpz \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -q templates.tpz -d "$RUNNER_TEMP/godot-templates"
+          TEMPLATE_VERSION="$(tr -d '\r\n' < "$RUNNER_TEMP/godot-templates/templates/version.txt")"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/$TEMPLATE_VERSION"
+          mkdir -p "$TEMPLATE_DIR"
+          cp "$RUNNER_TEMP/godot-templates/templates/"web*.zip "$TEMPLATE_DIR/"
+      - run: bash scripts/export_web.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-kingdoms-web
+          path: build/web/
+          if-no-files-found: error
