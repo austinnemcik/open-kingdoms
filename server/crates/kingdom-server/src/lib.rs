@@ -3,6 +3,7 @@
 //! The client is untrusted: it sends requests, and this server validates and
 //! applies every one of them through the pure rules in `game-core`.
 
+pub mod clock;
 mod session;
 mod state;
 pub mod store;
@@ -41,11 +42,8 @@ pub async fn serve(
     data: GameData,
     on_bound: impl FnOnce(SocketAddr),
 ) -> anyhow::Result<()> {
-    let listener = TcpListener::bind(addr).await?;
-    on_bound(listener.local_addr()?);
     let kingdom = Arc::new(tokio::task::spawn_blocking(move || Kingdom::new(data)).await??);
-    axum::serve(listener, router(kingdom)).await?;
-    Ok(())
+    serve_kingdom(addr, kingdom, on_bound).await
 }
 
 /// Serve an injected kingdom; persistent deployments create their store off-runtime.
@@ -56,6 +54,22 @@ pub async fn serve_kingdom(
 ) -> anyhow::Result<()> {
     let listener = TcpListener::bind(addr).await?;
     on_bound(listener.local_addr()?);
-    axum::serve(listener, router(kingdom)).await?;
+    // Both futures belong to this serve call: cancelling it also drops the ticker.
+    tokio::select! {
+        result = axum::serve(listener, router(kingdom.clone())) => { result?; }
+        () = tick_loop(kingdom) => {}
+    }
     Ok(())
+}
+
+async fn tick_loop(kingdom: Arc<Kingdom>) {
+    let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        interval.tick().await;
+        let kingdom = kingdom.clone();
+        if let Err(error) = tokio::task::spawn_blocking(move || kingdom.tick()).await {
+            tracing::error!(%error, "server tick worker failed");
+        }
+    }
 }

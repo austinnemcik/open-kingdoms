@@ -15,6 +15,9 @@ pub struct Building {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct City {
     pub size: u32,
+    /// Last resource accounting time in Unix seconds; None denotes a legacy city.
+    #[serde(default)]
+    pub as_of: Option<u64>,
     pub resources: Resources,
     pub buildings: Vec<Building>,
     next_building_id: u32,
@@ -22,10 +25,11 @@ pub struct City {
 
 impl City {
     /// The starting city defined in `data/start.yaml`.
-    pub fn new_starting(data: &GameData) -> Self {
+    pub fn new_starting(data: &GameData, now: u64) -> Self {
         let start = &data.start;
         let mut city = Self {
             size: start.city_size,
+            as_of: Some(now),
             resources: start.resources,
             buildings: Vec::new(),
             next_building_id: 1,
@@ -64,9 +68,10 @@ mod tests {
     #[test]
     fn starting_city_matches_start_yaml() {
         let data = GameData::load(GameData::repo_data_dir()).unwrap();
-        let city = City::new_starting(&data);
+        let city = City::new_starting(&data, 123);
         assert_eq!(city.buildings.len(), data.start.buildings.len());
         assert_eq!(city.city_hall_level(), 1);
+        assert_eq!(city.as_of, Some(123));
         assert_eq!(city.resources, data.start.resources);
         let mut ids: Vec<_> = city.buildings.iter().map(|b| b.id).collect();
         ids.dedup();
