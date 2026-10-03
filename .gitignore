@@ -14,3 +14,6 @@
 *.log
 .DS_Store
 Thumbs.db
+
+# Autonomous agent run lock
+/.agent/
