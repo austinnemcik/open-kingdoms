@@ -17,7 +17,9 @@ func test_every_building_model_has_an_icon() -> void:
 	for file in DirAccess.get_files_at("res://assets/models/"):
 		if file.ends_with(".glb"):
 			count += 1
-			assert_true(UiIcons.has_icon(StringName(file.get_basename())), "icon for %s" % file)
+			# models are <kind>_t<tier>.glb (docs/ART_BIBLE.md); icons are per kind
+			var kind := file.get_basename().rsplit("_t", true, 1)[0]
+			assert_true(UiIcons.has_icon(StringName(kind)), "icon for %s" % file)
 	assert_true(count > 0, "found building models")
 
 

@@ -1,0 +1,28 @@
+{
+  "size": 40,
+  "resources": { "food": 4820000, "wood": 3960000, "stone": 2150000, "gold": 910000 },
+  "buildings": [
+    { "id": 1, "kind": "city_hall", "name": "City Hall", "level": 25, "x": 18, "y": 18, "footprint": 4 },
+    { "id": 2, "kind": "academy", "name": "Academy", "level": 22, "x": 15, "y": 12, "footprint": 3 },
+    { "id": 3, "kind": "barracks", "name": "Barracks", "level": 23, "x": 22, "y": 12, "footprint": 3 },
+    { "id": 4, "kind": "archery_range", "name": "Archery Range", "level": 18, "x": 11, "y": 15, "footprint": 3 },
+    { "id": 5, "kind": "stable", "name": "Stable", "level": 21, "x": 11, "y": 21, "footprint": 3 },
+    { "id": 6, "kind": "siege_workshop", "name": "Siege Workshop", "level": 20, "x": 26, "y": 15, "footprint": 3 },
+    { "id": 7, "kind": "hospital", "name": "Hospital", "level": 17, "x": 25, "y": 21, "footprint": 2 },
+    { "id": 8, "kind": "storehouse", "name": "Storehouse", "level": 22, "x": 28, "y": 21, "footprint": 2 },
+    { "id": 9, "kind": "farm", "name": "Farm", "level": 16, "x": 15, "y": 25, "footprint": 2 },
+    { "id": 10, "kind": "farm", "name": "Farm", "level": 21, "x": 12, "y": 25, "footprint": 2 },
+    { "id": 11, "kind": "lumber_mill", "name": "Lumber Mill", "level": 19, "x": 21, "y": 25, "footprint": 2 },
+    { "id": 12, "kind": "quarry", "name": "Quarry", "level": 23, "x": 24, "y": 25, "footprint": 2 },
+    { "id": 13, "kind": "goldmine", "name": "Goldmine", "level": 16, "x": 27, "y": 25, "footprint": 2 },
+    { "id": 14, "kind": "farm", "name": "Farm", "level": 24, "x": 15, "y": 28, "footprint": 2 },
+    { "id": 15, "kind": "farm", "name": "Farm", "level": 20, "x": 12, "y": 28, "footprint": 2 },
+    { "id": 16, "kind": "storehouse", "name": "Storehouse", "level": 16, "x": 21, "y": 28, "footprint": 2 },
+    { "id": 17, "kind": "lumber_mill", "name": "Lumber Mill", "level": 21, "x": 24, "y": 28, "footprint": 2 },
+    { "id": 18, "kind": "hospital", "name": "Hospital", "level": 25, "x": 8, "y": 18, "footprint": 2 },
+    { "id": 19, "kind": "goldmine", "name": "Goldmine", "level": 22, "x": 30, "y": 17, "footprint": 2 },
+    { "id": 20, "kind": "quarry", "name": "Quarry", "level": 18, "x": 27, "y": 28, "footprint": 2 },
+    { "id": 21, "kind": "barracks", "name": "Barracks", "level": 17, "x": 26, "y": 11, "footprint": 3 },
+    { "id": 22, "kind": "academy", "name": "Academy", "level": 16, "x": 11, "y": 11, "footprint": 3 }
+  ]
+}
